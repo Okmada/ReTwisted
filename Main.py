@@ -15,23 +15,31 @@ import requests
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 W, H = 975, 850
 FOLDER = "assets/"
 
-FRIEND = cv2.imread(FOLDER + "friend.png")
-JOIN_FRIEND = cv2.imread(FOLDER + "join-friend.png")
+FRIEND = cv2.imread(resource_path(FOLDER + "friend.png"))
+JOIN_FRIEND = cv2.imread(resource_path(FOLDER + "join-friend.png"))
 
-JOIN_BTN = cv2.imread(FOLDER + "join-button.png")
+JOIN_BTN = cv2.imread(resource_path(FOLDER + "join-button.png"))
 
-PLAY = cv2.imread(FOLDER + "play.png")
-MENU = cv2.imread(FOLDER + "menu-icon.png")
-WEATHER = cv2.imread(FOLDER + "weather-icon.png")
+PLAY = cv2.imread(resource_path(FOLDER + "play.png"))
+MENU = cv2.imread(resource_path(FOLDER + "menu-icon.png"))
+WEATHER = cv2.imread(resource_path(FOLDER + "weather-icon.png"))
 
-CAPE_ONLY = cv2.imread(FOLDER + "cape-only.png")
-CAPE = cv2.imread(FOLDER + "cape.png")
-CAPE_MASK = cv2.imread(FOLDER + "cape-mask.png")
+CAPE_ONLY = cv2.imread(resource_path(FOLDER + "cape-only.png"))
+CAPE = cv2.imread(resource_path(FOLDER + "cape.png"))
+CAPE_MASK = cv2.imread(resource_path(FOLDER + "cape-mask.png"))
 
-LEAVE = cv2.imread(FOLDER + "leave.png")
+LEAVE = cv2.imread(resource_path(FOLDER + "leave.png"))
 
 DESKTOP = win32gui.GetDesktopWindow()
 
