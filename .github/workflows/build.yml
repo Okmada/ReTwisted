@@ -1,0 +1,21 @@
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: 'windows-latest'
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+      with:
+        python-version: 3.11
+
+    - run: pip install -r requirements.txt pyinstaller Pillow
+    - run: pyinstaller --onefile --noconsole --add-data "assets;assets" -i icon.png -n App Main.py
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: dist/*
