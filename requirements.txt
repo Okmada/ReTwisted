@@ -1,0 +1,6 @@
+numpy
+opencv_python
+PyDirectInput
+pytesseract
+pywin32
+requests
