@@ -4,6 +4,7 @@ from time import sleep
 from requests import post
 import win32gui
 import win32ui
+import win32con
 import numpy as np
 import cv2
 import threading
@@ -75,6 +76,7 @@ class TOOLS:
 class IHANDLER(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        self.name = "Input Handler"
 
         self.eventsQueue = []
         self.event = threading.Event()
@@ -165,7 +167,7 @@ class GAME(threading.Thread):
             case "WINDOWSCLIENT":
                 if (win := win32gui.FindWindow(None, "Roblox Crash")) == 0:
                     return False
-                self.handler.qPressKey(win, "enter")
+                win32gui.PostMessage(win, win32con.WM_CLOSE, 0, 0)
 
             case "ApplicationFrameWindow":
                 if win32gui.IsWindow(self.win):
