@@ -165,7 +165,6 @@ class GAME(threading.Thread):
             case "WINDOWSCLIENT":
                 if (win := win32gui.FindWindow(None, "Roblox Crash")) == 0:
                     return False
-                print(win)
                 self.handler.qPressKey(win, "enter")
 
             case "ApplicationFrameWindow":
@@ -195,8 +194,10 @@ class GAME(threading.Thread):
         self.server = server
 
     def resize(self):
-        x, y = win32gui.GetWindowRect(self.win)[:2]
-        win32gui.MoveWindow(self.win, x, y, W, H, True)
+        left, top, right, bot = win32gui.GetWindowRect(self.win)
+        w, h = right - left, bot - top
+        if w != W or h != H:
+            win32gui.MoveWindow(self.win, left, top, W, H, True)
 
     def getscr(self):
         self.crashDetection()
