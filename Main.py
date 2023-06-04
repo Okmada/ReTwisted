@@ -1,6 +1,7 @@
 from tkinter import font
 from ctypes import windll
 from time import sleep
+from requests import post
 import win32gui
 import win32ui
 import numpy as np
@@ -11,7 +12,6 @@ import pydirectinput
 import time
 import tkinter as tk
 import json
-import requests
 import sys
 import os
 
@@ -41,7 +41,7 @@ CAPE_ONLY = cv2.imread(resource_path(FOLDER + "cape-only.png"))
 CAPE = cv2.imread(resource_path(FOLDER + "cape.png"))
 CAPE_MASK = cv2.imread(resource_path(FOLDER + "cape-mask.png"))
 
-LEAVE = cv2.imread(resource_path(FOLDER + "leave.png"))
+TWISTED = cv2.imread(resource_path(FOLDER + "twisted.png"))
 
 DESKTOP = win32gui.GetDesktopWindow()
 
@@ -143,12 +143,14 @@ class GAME(threading.Thread):
         "ApplicationFrameWindow": "Microsoft Roblox"
     }
 
-    def __init__(self, win, handler, dataCallback, server=0):
+    def __init__(self, win, handler, config, dataCallback, server=0):
         threading.Thread.__init__(self)
 
         self.win = win
+        self.name = win32gui.GetClassName(self.win)
         self.handler = handler
         self.server = server
+        self.config = config
 
         self.dataCallback = dataCallback
         self.historyTextCallback = None
@@ -158,12 +160,37 @@ class GAME(threading.Thread):
 
         self.start()
 
+    def crashDetection(self):
+        return
+        match self.name:
+            case "WINDOWSCLIENT":
+                if (win := win32gui.FindWindow(None, "Roblox Crash")) == 0:
+                    return False
+                print(win)
+                self.handler.qPressKey(win, "enter")
+
+            case "ApplicationFrameWindow":
+                if win32gui.IsWindow(self.win):
+                    return False
+                
+            case _:
+                return None
+                            
+        if path := self.config(["paths", self.getName().lower()]):
+            os.startfile(path)
+
+        while (newWin := win32gui.FindWindow(self.name, "Roblox")) in [self.win, 0]:
+            sleep(.1)
+        self.win = newWin
+
+        self.findAndClick(TWISTED)
+        self.run()
+
     def getName(self, masked=True):
-        name = win32gui.GetClassName(self.win)
-        if name in self.CLASSNAMES.keys() and masked:
-            return self.CLASSNAMES[name]
+        if self.name in self.CLASSNAMES.keys() and masked:
+            return self.CLASSNAMES[self.name]
         else:
-            return name
+            return self.name
 
     def setServer(self, server):
         self.server = server
@@ -173,8 +200,7 @@ class GAME(threading.Thread):
         win32gui.MoveWindow(self.win, x, y, W, H, True)
 
     def getscr(self):
-        if not win32gui.IsWindow(self.win):
-            return None
+        self.crashDetection()
 
         self.resize()
 
@@ -234,7 +260,7 @@ class GAME(threading.Thread):
 
         while not TOOLS.findPos(JOIN_BTN, self.getscr(), threshold=0.005)[0]:
             sleep(.25)
-        sleep(2.5)
+        # sleep(2.5)
 
     def joinServer(self, n):
         servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
@@ -245,7 +271,7 @@ class GAME(threading.Thread):
     def quitGame(self):
         self.handler.qPressKey(self.win, "esc")
 
-        self.findAndClick(LEAVE)
+        self.handler.qPressKey(self.win, "l")
 
         self.handler.qPressKey(self.win, "enter")
 
@@ -288,7 +314,7 @@ class DiscordWebHook:
         if not url:
             return
         
-        requests.post(url, json={
+        post(url, json={
             "username": "Re:Twisted bot",
             "content" : f"<@{pingId}>" if pingId else "",
             "embeds": [{
@@ -414,10 +440,9 @@ class GUI:
         self.setup()
 
         self.games = []
-        win32gui.EnumWindows( lambda hwnd, _: \
-            self.newGame(hwnd) \
-            if win32gui.IsWindowVisible(hwnd) and win32gui.GetWindowText(hwnd).lower() == "roblox" \
-            else None, None )
+        for className in GAME.CLASSNAMES.keys():
+            if (win := win32gui.FindWindow(className, "Roblox")) != 0:
+                self.newGame(win)
 
         self.updateHisotry()
 
@@ -426,16 +451,16 @@ class GUI:
         os._exit(1)
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.handleData)
+        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData)
 
         self.games.append(game)
         self.GameFrame(self.right_side_SF, game)
 
     def handleData(self, game, num):
-        if num >= self.config.config["cape"]["highest"] or num <= self.config.config["cape"]["lowest"]:
+        if num >= self.config.getSetting(["cape", "highest"]) or num <= self.config.getSetting(["cape", "lowest"]):
             self.popup.open()
             self.ihandler.pause()
-            DiscordWebHook.send(self.config.config["webhook"]["url"], self.config.config["webhook"]["ping-id"], 0)
+            DiscordWebHook.send(self.config.getSetting(["webhook", "url"]), self.config.getSetting(["webhook", "ping-id"]), 0)
             game.rerollsSGS = 0
 
         self.updateHisotry()
@@ -530,11 +555,15 @@ class CONFIG:
     TEMPLATE = {
         "webhook": {
             "url": [str, ""],
-            "ping-id": [str, ""]
+            "ping id": [str, ""]
         },
         "cape": {
             "highest": [int, 7000],
             "lowest": [int, 300]
+        },
+        "paths": {
+            "microsoft roblox": [str, ""],
+            "roblox player": [str, ""],
         }
     }
 
@@ -553,7 +582,7 @@ class CONFIG:
 
     def setup(self):
         self.root.title("Re:Twisted - config")
-        self.root.geometry("400x500")
+        self.root.geometry("400x900")
         self.root.resizable(True, True)
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
@@ -598,9 +627,12 @@ class CONFIG:
 
         self.root.withdraw()
 
+    def getSetting(self, path):
+        return self.getInDict(self.config, path)
+
     def configGUIGenerator(self, template, master, path=[]):
         if path:
-            last = path[-1].replace("-", " ").capitalize()
+            last = path[-1].capitalize()
 
             frame = tk.Frame(master)
             frame.pack(anchor=tk.W, padx=(max(0, (len(path) - 1) * 25), 0))
@@ -637,7 +669,7 @@ class CONFIG:
                 inpt.trace_add("write", lambda *e: validate())
 
                 tk.Entry(frame, textvariable=inpt) \
-                    .pack(pady=(0, 15))
+                    .pack(pady=(0, 15), side=tk.LEFT)
 
     @staticmethod
     def getInDict(config, path):
