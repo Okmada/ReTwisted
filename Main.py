@@ -28,8 +28,6 @@ def resource_path(relative_path):
 W, H = 975, 850
 FOLDER = "assets/"
 
-ICON = resource_path("icon.png")
-
 FRIEND = cv2.imread(resource_path(FOLDER + "friend.png"))
 JOIN_FRIEND = cv2.imread(resource_path(FOLDER + "join-friend.png"))
 
@@ -452,7 +450,7 @@ class GUI:
         self.root.title("Re:Twisted")
         self.root.geometry("800x500")
         self.root.resizable(False, True)
-        self.root.iconphoto(True, tk.PhotoImage(file=resource_path(ICON)))
+        self.root.iconphoto(True, tk.PhotoImage(file=resource_path("icon.png")))
 
         self.root.defaultFont = font.nametofont("TkDefaultFont")
         self.root.defaultFont.configure(family="Comic Sans MS", size=18)
