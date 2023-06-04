@@ -527,12 +527,12 @@ class GUI:
         
         self.recordsUpdateCallbacks = []        
         for recordType, command in [["Highest cape", lambda timeHistory, capeHistory, games: max(capeHistory) if capeHistory else None], 
-                                     ["Loswest cape", lambda timeHistory, capeHistory, games: min(capeHistory) if capeHistory else None], 
-                                     ["Average cape", lambda timeHistory, capeHistory, games: round(sum(capeHistory)/len(capeHistory)) if capeHistory else None], 
-                                     ["Avg reroll time", lambda timeHistory, capeHistory, games: round(sum(timeHistory)/len(timeHistory), 1) if timeHistory else None],
-                                     ["Rerolls SGS", lambda timeHistory, capeHistory, games: min([game.rerollsSGS for game in games]) if games else None],
-                                     ["Servers rolled", lambda timeHistory, capeHistory, games: len(capeHistory) if capeHistory else None]
-                                     ]:
+                                    ["Loswest cape", lambda timeHistory, capeHistory, games: min(capeHistory) if capeHistory else None], 
+                                    ["Average cape", lambda timeHistory, capeHistory, games: round(sum(capeHistory)/len(capeHistory)) if capeHistory else None], 
+                                    ["Avg reroll time", lambda timeHistory, capeHistory, games: round(sum(timeHistory)/len(timeHistory), 1) if timeHistory else None],
+                                    ["Rerolls SGS", lambda timeHistory, capeHistory, games: min([game.rerollsSGS for game in games]) if games else None],
+                                    ["Servers rolled", lambda timeHistory, capeHistory, games: len(capeHistory) if capeHistory else None]
+                                    ]:
             label = tk.Label(self.left_side_SF)
             label.pack(anchor=tk.W)
 
