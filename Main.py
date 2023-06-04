@@ -105,11 +105,15 @@ class IHANDLER(threading.Thread):
     @staticmethod
     def click(win, x, y):
         IHANDLER.focuswindow(win)
-        IHANDLER.focuswindow(DESKTOP)
 
         mx, my = win32gui.GetWindowRect(win)[:2]
 
-        pydirectinput.doubleClick(mx + x, my + y)
+        match win32gui.GetClassName(win):
+            case "WINDOWSCLIENT":
+                IHANDLER.focuswindow(DESKTOP)
+                pydirectinput.doubleClick(mx + x, my + y)
+            case "ApplicationFrameWindow":
+                pydirectinput.leftClick(mx + x, my + y)
 
     def qClick(self, win, x, y):
         self.eventsQueue.append(lambda: self.click(win, x, y))
@@ -262,7 +266,6 @@ class GAME(threading.Thread):
 
         while not TOOLS.findPos(JOIN_BTN, self.getscr(), threshold=0.005)[0]:
             sleep(.25)
-        sleep(2.5)
 
     def joinServer(self, n):
         servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
