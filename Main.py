@@ -161,7 +161,6 @@ class GAME(threading.Thread):
         self.start()
 
     def crashDetection(self):
-        return
         match self.name:
             case "WINDOWSCLIENT":
                 if (win := win32gui.FindWindow(None, "Roblox Crash")) == 0:
@@ -183,7 +182,7 @@ class GAME(threading.Thread):
             sleep(.1)
         self.win = newWin
 
-        self.findAndClick(TWISTED)
+        self.findAndClick(TWISTED, threshold=0.005)
         self.run()
 
     def getName(self, masked=True):
@@ -232,10 +231,10 @@ class GAME(threading.Thread):
 
         return img.astype(dtype=np.uint8)
     
-    def findCoords(self, image, interval=.25):
+    def findCoords(self, image, interval=.25, threshold=.1):
         ox, oy = None, None
         while True:
-            success, x, y = TOOLS.findPos(image, self.getscr())
+            success, x, y = TOOLS.findPos(image, self.getscr(), threshold=threshold)
             
             if success:
                 if ox == x and oy == y:
@@ -246,12 +245,12 @@ class GAME(threading.Thread):
                         
             sleep(interval)
     
-    def findAndClick(self, images):
+    def findAndClick(self, images, threshold=.1):
         if type(images) is not list:
             images = [images]
 
         for image in images:
-            x, y = self.findCoords(image)
+            x, y = self.findCoords(image, threshold=threshold)
 
             self.handler.qClick(self.win, x, y)
     
@@ -260,7 +259,7 @@ class GAME(threading.Thread):
 
         while not TOOLS.findPos(JOIN_BTN, self.getscr(), threshold=0.005)[0]:
             sleep(.25)
-        # sleep(2.5)
+        sleep(2.5)
 
     def joinServer(self, n):
         servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
