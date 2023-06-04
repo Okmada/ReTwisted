@@ -158,9 +158,9 @@ class GAME(threading.Thread):
 
         self.start()
 
-    def getName(self):
+    def getName(self, masked=True):
         name = win32gui.GetClassName(self.win)
-        if name in self.CLASSNAMES.keys():
+        if name in self.CLASSNAMES.keys() and masked:
             return self.CLASSNAMES[name]
         else:
             return name
@@ -422,6 +422,8 @@ class GUI:
         self.updateHisotry()
 
         self.root.mainloop()
+
+        os._exit(1)
 
     def newGame(self, win):
         game = GAME(win, self.ihandler, self.handleData)
