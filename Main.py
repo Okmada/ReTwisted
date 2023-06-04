@@ -12,6 +12,8 @@ import time
 import tkinter as tk
 import json
 import requests
+import sys
+import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
 
@@ -25,6 +27,8 @@ def resource_path(relative_path):
 
 W, H = 975, 850
 FOLDER = "assets/"
+
+ICON = resource_path("icon.png")
 
 FRIEND = cv2.imread(resource_path(FOLDER + "friend.png"))
 JOIN_FRIEND = cv2.imread(resource_path(FOLDER + "join-friend.png"))
@@ -146,8 +150,10 @@ class GAME(threading.Thread):
 
         self.win = win
         self.handler = handler
-        self.dataCallback = dataCallback
         self.server = server
+
+        self.dataCallback = dataCallback
+        self.historyTextCallback = None
 
         self.history = []
         self.rerollsSGS = 0
@@ -169,6 +175,9 @@ class GAME(threading.Thread):
         win32gui.MoveWindow(self.win, x, y, W, H, True)
 
     def getscr(self):
+        if not win32gui.IsWindow(self.win):
+            return None
+
         self.resize()
 
         left, top, right, bot = win32gui.GetWindowRect(self.win)
@@ -227,7 +236,7 @@ class GAME(threading.Thread):
 
         while not TOOLS.findPos(JOIN_BTN, self.getscr(), threshold=0.005)[0]:
             sleep(.25)
-        sleep(2)
+        sleep(2.5)
 
     def joinServer(self, n):
         servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
@@ -264,12 +273,14 @@ class GAME(threading.Thread):
         self.openServers()
         self.joinServer(self.server)
         while True:
-            num = self.getInfo()
+            cape = self.getInfo()
 
-            self.history.append([time.time() - timebeg, num])
+            timeend = time.time()
+            self.history.append([timeend - timebeg, cape])
+            self.historyTextCallback(timeend, cape)
             self.rerollsSGS += 1
 
-            self.dataCallback(self, num)
+            self.dataCallback(self, cape)
 
             timebeg = time.time()
             self.restartGame()
@@ -277,7 +288,6 @@ class GAME(threading.Thread):
 class DiscordWebHook:
     def send(url, pingId, stats):
         if not url:
-            print("reting")
             return
         
         requests.post(url, json={
@@ -340,6 +350,8 @@ class GUI:
 
             self.setup()
 
+            game.historyTextCallback = self.appendToHistory
+
         def setup(self):
             history_frame = tk.Frame(self.frame, width=210)
             history_frame.pack_propagate(False)
@@ -389,6 +401,9 @@ class GUI:
             self.historyText.insert("1.0", f"{time.strftime('%H:%M:%S', time.localtime(timestamp))} - {num} J/kg\n")
             self.historyText.configure(state=tk.DISABLED)
 
+        def destroy(self):
+            self.frame.pack_forget()
+
     def __init__(self):
         self.root = tk.Tk()
 
@@ -398,6 +413,7 @@ class GUI:
 
         self.popup.continueCallback = self.ihandler.unpause
 
+        self.setup()
 
         self.games = []
         win32gui.EnumWindows( lambda hwnd, _: \
@@ -405,16 +421,18 @@ class GUI:
             if win32gui.IsWindowVisible(hwnd) and win32gui.GetWindowText(hwnd).lower() == "roblox" \
             else None, None )
 
-        self.setup()
+        self.updateHisotry()
 
         self.root.mainloop()
 
     def newGame(self, win):
         game = GAME(win, self.ihandler, self.handleData)
+
         self.games.append(game)
+        self.GameFrame(self.right_side_SF, game)
 
     def handleData(self, game, num):
-        if num >= self.config.config["cape"]["lowest"] or num <= self.config.config["cape"]["highest"]:
+        if num >= self.config.config["cape"]["highest"] or num <= self.config.config["cape"]["lowest"]:
             self.popup.open()
             self.ihandler.pause()
             DiscordWebHook.send(self.config.config["webhook"]["url"], self.config.config["webhook"]["ping-id"], 0)
@@ -423,19 +441,18 @@ class GUI:
         self.updateHisotry()
     
     def updateHisotry(self):
-        timebet = time.time()
         history = [stat for game in self.games for stat in game.history]
         timeHistory = [time for time, cape in history]
         capeHistory = [cape for time, cape in history]
 
         for recordType, command, label in self.recordsUpdateCallbacks:
             label.config(text=f"{recordType}: {command(timeHistory, capeHistory, self.games)}")
-        print(time.time() - timebet)
 
     def setup(self):
         self.root.title("Re:Twisted")
         self.root.geometry("800x500")
         self.root.resizable(False, True)
+        self.root.iconphoto(True, tk.PhotoImage(file=resource_path(ICON)))
 
         self.root.defaultFont = font.nametofont("TkDefaultFont")
         self.root.defaultFont.configure(family="Comic Sans MS", size=18)
@@ -486,8 +503,8 @@ class GUI:
         self.recordsUpdateCallbacks = []        
         for recordType, command in [["Highest cape", lambda timeHistory, capeHistory, games: max(capeHistory) if capeHistory else None], 
                                      ["Loswest cape", lambda timeHistory, capeHistory, games: min(capeHistory) if capeHistory else None], 
-                                     ["Average cape", lambda timeHistory, capeHistory, games: sum(capeHistory)/len(capeHistory) if capeHistory else None], 
-                                     ["Avg reroll time", lambda timeHistory, capeHistory, games: sum(timeHistory)/len(timeHistory) if timeHistory else None],
+                                     ["Average cape", lambda timeHistory, capeHistory, games: round(sum(capeHistory)/len(capeHistory)) if capeHistory else None], 
+                                     ["Avg reroll time", lambda timeHistory, capeHistory, games: round(sum(timeHistory)/len(timeHistory), 1) if timeHistory else None],
                                      ["Rerolls SGS", lambda timeHistory, capeHistory, games: min([game.rerollsSGS for game in games]) if games else None],
                                      ["Servers rolled", lambda timeHistory, capeHistory, games: len(capeHistory) if capeHistory else None]
                                      ]:
@@ -495,7 +512,6 @@ class GUI:
             label.pack(anchor=tk.W)
 
             self.recordsUpdateCallbacks.append([recordType, command, label])
-        self.updateHisotry()
    
         right_sf_canvas = tk.Canvas(self.right_side, width=500)
         self.right_side_SF = tk.Frame(right_sf_canvas)
@@ -509,9 +525,6 @@ class GUI:
 
         self.right_side_SF.bind("<Configure>", \
             lambda event, canvas=right_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
-
-        for game in self.games:
-            self.GameFrame(self.right_side_SF, game)
 
 class CONFIG:
     TEMPLATE = {
