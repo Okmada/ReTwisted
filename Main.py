@@ -460,7 +460,8 @@ class GUI:
         if num >= self.config.getSetting(["cape", "highest"]) or num <= self.config.getSetting(["cape", "lowest"]):
             self.popup.open()
             self.ihandler.pause()
-            DiscordWebHook.send(self.config.getSetting(["webhook", "url"]), self.config.getSetting(["webhook", "ping-id"]), 0)
+            DiscordWebHook.send(self.config.getSetting(["webhook", "url"]), 
+                                self.config.getSetting(["webhook", "ping-id"]), 0)
             game.rerollsSGS = 0
 
         self.updateHisotry()
@@ -526,10 +527,10 @@ class GUI:
             lambda event, canvas=left_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
         
         self.recordsUpdateCallbacks = []        
-        for recordType, command in [["Highest cape", lambda timeHistory, capeHistory, games: max(capeHistory) if capeHistory else None], 
-                                    ["Loswest cape", lambda timeHistory, capeHistory, games: min(capeHistory) if capeHistory else None], 
-                                    ["Average cape", lambda timeHistory, capeHistory, games: round(sum(capeHistory)/len(capeHistory)) if capeHistory else None], 
-                                    ["Avg reroll time", lambda timeHistory, capeHistory, games: round(sum(timeHistory)/len(timeHistory), 1) if timeHistory else None],
+        for recordType, command in [["Highest cape", lambda timeHistory, capeHistory, games: f"{max(capeHistory)} J/kg" if capeHistory else None], 
+                                    ["Loswest cape", lambda timeHistory, capeHistory, games: f"{min(capeHistory)} J/kg" if capeHistory else None], 
+                                    ["Average cape", lambda timeHistory, capeHistory, games: f"{round(sum(capeHistory)/len(capeHistory))} J/kg" if capeHistory else None], 
+                                    ["Avg reroll time", lambda timeHistory, capeHistory, games: f"{round(sum(timeHistory)/len(timeHistory), 1)} sec" if timeHistory else None],
                                     ["Rerolls SGS", lambda timeHistory, capeHistory, games: min([game.rerollsSGS for game in games]) if games else None],
                                     ["Servers rolled", lambda timeHistory, capeHistory, games: len(capeHistory) if capeHistory else None]
                                     ]:
