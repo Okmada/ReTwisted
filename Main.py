@@ -58,8 +58,8 @@ class TOOLS:
                 TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
     
     @staticmethod
-    def findPos(template, image, threshold=.1, mask=None):
-        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED, mask=mask)
+    def findPos(template, image, threshold=.1):
+        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
         lerror, herror, loc, _ = cv2.minMaxLoc(res)
         x, y = loc
 
