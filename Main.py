@@ -38,9 +38,9 @@ PLAY = cv2.imread(resource_path(FOLDER + "play.png"))
 MENU = cv2.imread(resource_path(FOLDER + "menu-icon.png"))
 WEATHER = cv2.imread(resource_path(FOLDER + "weather-icon.png"))
 
-CAPE_ONLY = cv2.imread(resource_path(FOLDER + "cape-only.png"))
-CAPE = cv2.imread(resource_path(FOLDER + "cape.png"))
-CAPE_MASK = cv2.imread(resource_path(FOLDER + "cape-mask.png"))
+STATS = cv2.imread(resource_path(FOLDER + "stats.png"))
+STATS_MASK = cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY)
+STATS_DATA_MASK = cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-data-mask.png")), cv2.COLOR_BGR2GRAY)
 
 TWISTED = cv2.imread(resource_path(FOLDER + "twisted.png"))
 
@@ -74,25 +74,17 @@ class TOOLS:
         return [(pos[0] + w//2, pos[1] + h//2) for pos in zip(*loc[::-1])]
     
 class IHANDLER(threading.Thread):
-    def __init__(self):
+    def __init__(self, paused):
         threading.Thread.__init__(self)
         self.name = "Input Handler"
 
         self.eventsQueue = []
         self.event = threading.Event()
 
-        self.paused = threading.Event()
+        self.paused = paused
         self.statusCallback = None
 
         self.start()
-
-    def pause(self):
-        self.statusCallback("Status - Paused")
-        self.paused.clear()
-
-    def unpause(self):
-        self.statusCallback("Status - Running")
-        self.paused.set()
 
     @staticmethod
     def focuswindow(window):
@@ -149,7 +141,7 @@ class GAME(threading.Thread):
         "ApplicationFrameWindow": "Microsoft Roblox"
     }
 
-    def __init__(self, win, handler, config, dataCallback, server=0):
+    def __init__(self, win, handler, config, dataCallback, paused, server=0):
         threading.Thread.__init__(self)
 
         self.win = win
@@ -157,12 +149,12 @@ class GAME(threading.Thread):
         self.handler = handler
         self.server = server
         self.config = config
+        self.paused = paused
 
         self.dataCallback = dataCallback
         self.historyTextCallback = None
 
         self.history = []
-        self.rerollsSGS = 0
 
         self.start()
 
@@ -206,6 +198,8 @@ class GAME(threading.Thread):
             win32gui.MoveWindow(self.win, left, top, W, H, True)
 
     def getscr(self):
+        self.paused.wait()
+
         self.crashDetection()
 
         self.resize()
@@ -286,30 +280,84 @@ class GAME(threading.Thread):
         self.joinServer(self.server)
 
     def getInfo(self):
-        self.findAndClick([PLAY, MENU, WEATHER])
+        ox, oy = None, None
+        while True:
+            sleep(.25)
+            scr = self.getscr()
 
-        self.findCoords(CAPE_ONLY)
+            res = cv2.matchTemplate(scr, STATS, cv2.TM_SQDIFF_NORMED, mask=STATS_MASK)
+            lerror, herror, loc, _ = cv2.minMaxLoc(res)
+            success = lerror <= .1
+            x, y = loc
+            
+            if not success:
+                ox, oy = None, None
+                continue
+            else:
+                if ox != x or oy != y:
+                    ox, oy = x, y
+                    continue
 
-        scr = self.getscr()
-        _, _, loc, _ = cv2.minMaxLoc(cv2.matchTemplate(scr, CAPE, cv2.TM_SQDIFF_NORMED, mask=CAPE_MASK))
-        cropped = TOOLS.cropXYWH(scr, loc[0], loc[1], CAPE.shape[1], CAPE.shape[0])
-        text = pytesseract.image_to_string(cropped).strip()
-        return [int("".join(l)) for l in [[ch for ch in t if ch.isdigit()] for t in text.split(" ")] if len(l)][1]  
+            h, w = STATS.shape[:2]
+            ih, iw = scr.shape[:2]
 
+            table = scr[TOOLS.clamp(y, 0, ih - h):TOOLS.clamp(y + h, h, ih), 
+                          TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
+
+            stats = []
+
+            contours, _ = cv2.findContours(STATS_DATA_MASK, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for contour in contours[::-1]:
+                contourMask = np.zeros_like(STATS_DATA_MASK)
+
+                cv2.drawContours(contourMask, [contour], 0, (255), -1)
+
+                cropped = cv2.bitwise_or(table, table, mask=contourMask)
+
+                cropped = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+
+                x, y, w, h = cv2.boundingRect(cv2.findNonZero(cropped))
+                cropped = cropped[y:y+h, x:x+w]
+
+                cropped = cv2.threshold(cropped, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 3)[::-1], interpolation = cv2.INTER_LINEAR)
+
+                
+                value = pytesseract.image_to_string(cropped, config='digits').strip()
+
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = float(value)
+
+                stats.append(value)
+            
+            ELEMENTS = ["TEMPERATURE", "DEW POINT", "LAPSE RATES", "HUMIDITY", "CAPE"]
+
+            if len(stats) != 2 * len(ELEMENTS):
+                continue
+
+            return {
+                "CURRENT": {name: value for name, value in zip(ELEMENTS, stats[::2])},
+                "FORECAST": {name: value for name, value in zip(ELEMENTS, stats[1::2])}
+            }
 
     def run(self):
         timebeg = time.time()
         self.openServers()
         self.joinServer(self.server)
         while True:
-            cape = self.getInfo()
+            self.findAndClick([PLAY, MENU, WEATHER])
+
+            stats = self.getInfo()
+            cape = stats["FORECAST"]["CAPE"]
 
             timeend = time.time()
             self.history.append([timeend - timebeg, cape])
             self.historyTextCallback(timeend, cape)
-            self.rerollsSGS += 1
 
-            self.dataCallback(self, cape)
+            self.dataCallback(stats)
 
             timebeg = time.time()
             self.restartGame()
@@ -321,20 +369,27 @@ class DiscordWebHook:
         
         post(url, json={
             "username": "Re:Twisted bot",
+            # "avatar_url": "",
             "content" : f"<@{config(['webhook', 'ping id'])}>" if config(['webhook', 'ping id']) else "",
             "embeds": [{
-                "title" : "Winds are picking up on speed :cloud_tornado:",
-                "description": f"Cape: **{stats}** J/kg"
+                "title": "Winds are picking up on speed :cloud_tornado:",
+                "color": "333",
+
+                "fields": [{
+                    "name": f"**{foc}**",
+                    "value": "```" + "\n".join([f"{key}: {value}" for key, value in item.items()]) + "```",
+                    "inline": True,
+                } for foc, item in stats.items()],
             }]
         })
 
 class GUI:
     class PausePopUP:
-        def __init__(self, parent):
+        def __init__(self, parent, paused):
             self.root = tk.Toplevel(parent)
             self.root.withdraw()
 
-            self.continueCallback = None
+            self.paused = paused
 
             self.setup()
 
@@ -360,7 +415,7 @@ class GUI:
                 .pack(side=tk.RIGHT, padx=10, fill=tk.X, expand=True)
             
         def continueAndClose(self):
-            self.continueCallback()
+            self.paused.unpause()
             self.close()
 
         def open(self):
@@ -436,11 +491,13 @@ class GUI:
     def __init__(self):
         self.root = tk.Tk()
 
-        self.config = CONFIG(self.root)
-        self.popup = self.PausePopUP(self.root)
-        self.ihandler = IHANDLER()
+        self.paused = threading.Event()
+        self.paused.pause = self.pause
+        self.paused.unpause = self.unpause
 
-        self.popup.continueCallback = self.ihandler.unpause
+        self.config = CONFIG(self.root)
+        self.popup = self.PausePopUP(self.root, self.paused)
+        self.ihandler = IHANDLER(self.paused)
 
         self.setup()
 
@@ -456,19 +513,20 @@ class GUI:
         os._exit(1)
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData)
+        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.paused)
 
         self.games.append(game)
         self.GameFrame(self.right_side_SF, game)
 
-    def handleData(self, game, num):
-        if num >= self.config.getSetting(["cape", "highest"]) or num <= self.config.getSetting(["cape", "lowest"]):
+    def handleData(self, stats):
+        cape = stats["FORECAST"]["CAPE"]
+
+        if cape >= self.config.getSetting(["cape", "highest"]) or \
+           cape <= self.config.getSetting(["cape", "lowest"]):
             self.popup.open()
-            self.ihandler.pause()
+            self.pause()
 
-            DiscordWebHook.send(self.config.getSetting, 0)
-
-            game.rerollsSGS = 0
+            DiscordWebHook.send(self.config.getSetting, stats)
 
         self.updateHisotry()
     
@@ -478,7 +536,15 @@ class GUI:
         capeHistory = [cape for time, cape in history]
 
         for recordType, command, label in self.recordsUpdateCallbacks:
-            label.config(text=f"{recordType}: {command(timeHistory, capeHistory, self.games)}")
+            label.config(text=f"{recordType}: {command(timeHistory, capeHistory)}")
+
+    def pause(self):
+        self.status.config(text="Status - Paused")
+        self.paused.clear()
+
+    def unpause(self):
+        self.status.config(text="Status - Running")
+        self.paused.set()
 
     def setup(self):
         self.root.title("Re:Twisted")
@@ -502,15 +568,14 @@ class GUI:
         tk.Label(self.left_side, text="Re:Twisted - alpha", font=(None, 20), background=self.lbg) \
             .pack(side=tk.TOP, pady=(0, 15))
         
-        status = tk.Label(self.left_side, text="Status - Paused", background=self.lbg)
-        status.pack(side=tk.TOP)
-        self.ihandler.statusCallback = lambda text: status.config(text=text)
+        self.status = tk.Label(self.left_side, text="Status - Paused", background=self.lbg)
+        self.status.pack(side=tk.TOP)
 
         server_buttons = tk.Frame(self.left_side, background=self.lbg)
         server_buttons.pack( fill=tk.X, side=tk.TOP)
-        tk.Button(server_buttons, text="Start", command=self.ihandler.unpause) \
+        tk.Button(server_buttons, text="Start", command=self.unpause) \
             .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
-        tk.Button(server_buttons, text="Pause", command=self.ihandler.pause) \
+        tk.Button(server_buttons, text="Pause", command=self.pause) \
             .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
 
         tk.Button(self.left_side, text="Settings", command= self.config.open) \
@@ -533,12 +598,11 @@ class GUI:
             lambda event, canvas=left_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
         
         self.recordsUpdateCallbacks = []        
-        for recordType, command in [["Highest cape", lambda timeHistory, capeHistory, games: f"{max(capeHistory)} J/kg" if capeHistory else None], 
-                                    ["Loswest cape", lambda timeHistory, capeHistory, games: f"{min(capeHistory)} J/kg" if capeHistory else None], 
-                                    ["Average cape", lambda timeHistory, capeHistory, games: f"{round(sum(capeHistory)/len(capeHistory))} J/kg" if capeHistory else None], 
-                                    ["Avg reroll time", lambda timeHistory, capeHistory, games: f"{round(sum(timeHistory)/len(timeHistory), 1)} sec" if timeHistory else None],
-                                    ["Rerolls SGS", lambda timeHistory, capeHistory, games: min([game.rerollsSGS for game in games]) if games else None],
-                                    ["Servers rolled", lambda timeHistory, capeHistory, games: len(capeHistory) if capeHistory else None]
+        for recordType, command in [["Highest cape", lambda timeHistory, capeHistory: f"{max(capeHistory)} J/kg" if capeHistory else None], 
+                                    ["Lowest cape", lambda timeHistory, capeHistory: f"{min(capeHistory)} J/kg" if capeHistory else None], 
+                                    ["Average cape", lambda timeHistory, capeHistory: f"{round(sum(capeHistory)/len(capeHistory))} J/kg" if capeHistory else None], 
+                                    ["Avg reroll time", lambda timeHistory, capeHistory: f"{round(sum(timeHistory)/len(timeHistory), 1)} sec" if timeHistory else None],
+                                    ["Servers rolled", lambda timeHistory, capeHistory: len(capeHistory) if capeHistory else None]
                                     ]:
             label = tk.Label(self.left_side_SF)
             label.pack(anchor=tk.W)
