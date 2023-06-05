@@ -58,8 +58,8 @@ class TOOLS:
                 TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
     
     @staticmethod
-    def findPos(template, image, threshold=.1):
-        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
+    def findPos(template, image, threshold=.1, mask=None):
+        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED, mask=mask)
         lerror, herror, loc, _ = cv2.minMaxLoc(res)
         x, y = loc
 
@@ -315,13 +315,13 @@ class GAME(threading.Thread):
             self.restartGame()
 
 class DiscordWebHook:
-    def send(url, pingId, stats):
-        if not url:
+    def send(config, stats):
+        if not (url := config(["webhook", "url"])):
             return
         
         post(url, json={
             "username": "Re:Twisted bot",
-            "content" : f"<@{pingId}>" if pingId else "",
+            "content" : f"<@{config(['webhook', 'ping id'])}>" if config(['webhook', 'ping id']) else "",
             "embeds": [{
                 "title" : "Winds are picking up on speed :cloud_tornado:",
                 "description": f"Cape: **{stats}** J/kg"
@@ -465,8 +465,9 @@ class GUI:
         if num >= self.config.getSetting(["cape", "highest"]) or num <= self.config.getSetting(["cape", "lowest"]):
             self.popup.open()
             self.ihandler.pause()
-            DiscordWebHook.send(self.config.getSetting(["webhook", "url"]), 
-                                self.config.getSetting(["webhook", "ping-id"]), 0)
+
+            DiscordWebHook.send(self.config.getSetting, 0)
+
             game.rerollsSGS = 0
 
         self.updateHisotry()
@@ -634,7 +635,7 @@ class CONFIG:
         self.root.withdraw()
 
     def getSetting(self, path):
-        return self.getInDict(self.config, path)
+        return self.getInDict(self.config, [e.lower() for e in path])
 
     def configGUIGenerator(self, template, master, path=[]):
         if path:
