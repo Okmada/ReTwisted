@@ -207,28 +207,34 @@ class GAME(threading.Thread):
         left, top, right, bot = win32gui.GetWindowRect(self.win)
         w, h = right - left, bot - top
 
-        hwndDC = win32gui.GetWindowDC(self.win)
-        mfcDC  = win32ui.CreateDCFromHandle(hwndDC)
-        saveDC = mfcDC.CreateCompatibleDC()
+        while True:
+            try:
+                hwndDC = win32gui.GetWindowDC(DESKTOP)
+                mfcDC  = win32ui.CreateDCFromHandle(hwndDC)
+                saveDC = mfcDC.CreateCompatibleDC()
 
-        saveBitMap = win32ui.CreateBitmap()
-        saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+                saveBitMap = win32ui.CreateBitmap()
+                saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
 
-        saveDC.SelectObject(saveBitMap)
+                saveDC.SelectObject(saveBitMap)
 
-        windll.user32.PrintWindow(self.win, saveDC.GetSafeHdc(), 2)
+                windll.user32.PrintWindow(self.win, saveDC.GetSafeHdc(), 2)
 
-        bmpinfo = saveBitMap.GetInfo()
-        bmpstr = saveBitMap.GetBitmapBits(True)
+                bmpinfo = saveBitMap.GetInfo()
+                bmpstr = saveBitMap.GetBitmapBits(True)
+
+                win32gui.DeleteObject(saveBitMap.GetHandle())
+                saveDC.DeleteDC()
+                mfcDC.DeleteDC()
+                win32gui.ReleaseDC(DESKTOP, hwndDC)
+            except:
+                print("RETRYING")
+                continue
+            break
 
         img = np.frombuffer(bmpstr, dtype=np.uint8)
         img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
         img = img[:,:,:3]
-
-        win32gui.DeleteObject(saveBitMap.GetHandle())
-        saveDC.DeleteDC()
-        mfcDC.DeleteDC()
-        win32gui.ReleaseDC(self.win, hwndDC)
 
         return img.astype(dtype=np.uint8)
     
