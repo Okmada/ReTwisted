@@ -228,7 +228,6 @@ class GAME(threading.Thread):
                 mfcDC.DeleteDC()
                 win32gui.ReleaseDC(DESKTOP, hwndDC)
             except:
-                print("RETRYING")
                 continue
             break
 
