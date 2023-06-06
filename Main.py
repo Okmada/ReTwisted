@@ -553,7 +553,7 @@ class GUI:
 
     def setup(self):
         self.root.title("Re:Twisted")
-        self.root.geometry("800x500")
+        self.root.geometry("850x500")
         self.root.resizable(False, True)
         self.root.iconphoto(True, tk.PhotoImage(file=resource_path("icon.png")))
 
@@ -561,7 +561,7 @@ class GUI:
         self.root.defaultFont.configure(family="Comic Sans MS", size=18)
 
         self.lbg = "#ccc"
-        self.left_side = tk.Frame(self.root, width=300, background=self.lbg)
+        self.left_side = tk.Frame(self.root, width=350, background=self.lbg)
         self.left_side.pack(side=tk.LEFT, fill=tk.BOTH)
         self.left_side.pack_propagate(False)
 
