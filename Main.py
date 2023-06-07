@@ -652,7 +652,7 @@ class CONFIG:
 
     def setup(self):
         self.root.title("Re:Twisted - config")
-        self.root.geometry("400x900")
+        self.root.geometry("400x600")
         self.root.resizable(True, True)
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
@@ -665,8 +665,25 @@ class CONFIG:
         
         tk.Button(bottomFrame, text="Close", command=lambda: self.close(False)) \
             .pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=5, pady=5)
+        
+        canvas = tk.Canvas(self.root, width=500)
+        frame = tk.Frame(canvas)
 
-        self.configGUIGenerator(self.TEMPLATE, self.root)
+        vscrollbar = tk.Scrollbar(self.root, orient=tk.VERTICAL, command=canvas.yview)
+        vscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.configure(yscrollcommand=vscrollbar.set)
+
+        hscrollbar = tk.Scrollbar(self.root, orient=tk.HORIZONTAL, command=canvas.xview)
+        hscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        canvas.configure(xscrollcommand=hscrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        canvas.create_window((0,0), window=frame, anchor=tk.NW)
+
+        frame.bind("<Configure>", \
+            lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        self.configGUIGenerator(self.TEMPLATE, frame)
 
     def load(self):
         try:
@@ -720,26 +737,23 @@ class CONFIG:
                 inpt = tk.StringVar(value=self.getInDict(self.newConfig, path))
                 self.updateList.append(lambda: inpt.set(self.getInDict(self.newConfig, path)))
 
-                match template[0]():
-                    case int():
-                        def validate():
-                            out = int("0" + "".join([n for n in inpt.get() if n.isnumeric()]))
-                            inpt.set(out)
+                inpt.trace_add("write", lambda *e: self.validateAndSet(path, inpt, template[0]()))
 
-                            self.setInDict(self.newConfig, path, out)
-                            return True
-                    case str():
-                        def validate():
-                            out = inpt.get()
-                            inpt.set(out)
-
-                            self.setInDict(self.newConfig, path, out)
-                            return True
-
-                inpt.trace_add("write", lambda *e: validate())
-
-                tk.Entry(frame, textvariable=inpt) \
+                tk.Entry(frame, textvariable=inpt, width=50) \
                     .pack(pady=(0, 15), side=tk.LEFT)
+                
+    def validateAndSet(self, config, inpt, dataType):
+        match dataType:
+            case int():
+                out = int("0" + "".join([n for n in inpt.get() if n.isnumeric()]))
+
+            case _:
+                out = inpt.get()
+
+        inpt.set(out)
+
+        self.setInDict(self.newConfig, config, out)
+        return True
 
     @staticmethod
     def getInDict(config, path):
