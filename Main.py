@@ -69,7 +69,8 @@ class TOOLS:
     
 class IHANDLER(threading.Thread):
     def __init__(self, paused):
-        threading.Thread.__init__(self)
+        super().__init__()
+        self.daemon = True
         self.name = "Input Handler"
 
         self.eventsQueue = []
@@ -136,7 +137,8 @@ class GAME(threading.Thread):
     }
 
     def __init__(self, win, handler, config, dataCallback, paused, server=0):
-        threading.Thread.__init__(self)
+        super().__init__()
+        self.daemon = True
 
         self.win = win
         self.name = win32gui.GetClassName(self.win)
@@ -508,8 +510,6 @@ class GUI:
         self.updateHisotry()
 
         self.root.mainloop()
-
-        os._exit(1)
 
     def newGame(self, win):
         game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.paused)
