@@ -737,18 +737,20 @@ class CONFIG:
                 inpt = tk.StringVar(value=self.getInDict(self.newConfig, path))
                 self.updateList.append(lambda: inpt.set(self.getInDict(self.newConfig, path)))
 
-                inpt.trace_add("write", lambda *e: self.validateAndSet(path, inpt, template[0]()))
+                inpt.trace_add("write", lambda *e: self.validateAndSet(path, inpt))
 
                 tk.Entry(frame, textvariable=inpt, width=50) \
                     .pack(pady=(0, 15), side=tk.LEFT)
                 
-    def validateAndSet(self, config, inpt, dataType):
-        match dataType:
+    def validateAndSet(self, config, inpt):
+        dataType = self.getInDict(self.TEMPLATE, config)[0]
+        match dataType():
             case int():
-                out = int("0" + "".join([n for n in inpt.get() if n.isnumeric()]))
+                out = "0" + "".join([n for n in inpt.get() if n.isnumeric()])
 
             case _:
                 out = inpt.get()
+        out = dataType(out)
 
         inpt.set(out)
 
