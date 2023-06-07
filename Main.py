@@ -50,12 +50,6 @@ class TOOLS:
     @staticmethod
     def clamp(n, minn, maxn):
         return max(min(maxn, n), minn)
-
-    @staticmethod
-    def cropXYWH(image, x, y, w, h):
-        ih, iw = image.shape[:2]
-        return image[TOOLS.clamp(y, 0, ih - h):TOOLS.clamp(y + h, h, ih),
-                TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
     
     @staticmethod
     def findPos(template, image, threshold=.1):
