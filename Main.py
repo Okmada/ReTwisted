@@ -460,7 +460,7 @@ class GUI:
             info_frame_bottom = tk.Frame(info_frame)
             info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
 
-            inte = tk.StringVar(value=0)
+            inte = tk.StringVar(value=self.game.server)
             def validate():
                 num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
                 inte.set(num)
@@ -512,7 +512,7 @@ class GUI:
         self.root.mainloop()
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.paused)
+        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.paused, server=len(self.games))
 
         self.games.append(game)
         self.GameFrame(self.right_side_SF, game)
