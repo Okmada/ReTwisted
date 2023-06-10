@@ -498,8 +498,6 @@ class GUI:
         self.popup = self.PausePopUP(self.root, self.paused)
         self.ihandler = IHANDLER(self.paused)
 
-        pytesseract.pytesseract.tesseract_cmd = self.config.getSetting(["paths", "tesseract"])
-
         self.setup()
 
         self.games = []
@@ -648,6 +646,8 @@ class CONFIG:
 
         self.load()
         self.write()
+
+        pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
 
         self.setup()
 
