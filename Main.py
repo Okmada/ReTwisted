@@ -16,8 +16,6 @@ import json
 import sys
 import os
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
-
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -500,6 +498,8 @@ class GUI:
         self.popup = self.PausePopUP(self.root, self.paused)
         self.ihandler = IHANDLER(self.paused)
 
+        pytesseract.pytesseract.tesseract_cmd = self.config.getSetting(["paths", "tesseract"])
+
         self.setup()
 
         self.games = []
@@ -634,6 +634,7 @@ class CONFIG:
         "paths": {
             "microsoft roblox": [str, ""],
             "roblox player": [str, ""],
+            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract"]
         }
     }
 
@@ -709,6 +710,8 @@ class CONFIG:
     def close(self, save):
         if save:
             self.config = self.fitDictToDict(self.TEMPLATE, self.newConfig)
+
+            pytesseract.pytesseract.tesseract_cmd = self.config.getSetting(["paths", "tesseract"])
 
             self.write()
 
