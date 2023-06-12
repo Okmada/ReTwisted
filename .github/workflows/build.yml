@@ -1,6 +1,7 @@
 on:
-  release:
-    types: [published]
+  push:
+#   release:
+#     types: [published]
 
 jobs:
   build:
