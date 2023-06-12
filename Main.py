@@ -50,13 +50,13 @@ class TOOLS:
         return max(min(maxn, n), minn)
     
     @staticmethod
-    def findPos(template, image, threshold=.1):
+    def findPos(template, image):
         res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
-        lerror, herror, loc, _ = cv2.minMaxLoc(res)
+        error, _, loc, _ = cv2.minMaxLoc(res)
         x, y = loc
 
         h, w = template.shape[:2]
-        return lerror <= threshold, x + w//2, y + h//2
+        return error, (x + w//2, y + h//2)
     
     def findMultiplePos(template, image, threshold=.9):
         res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
@@ -66,7 +66,7 @@ class TOOLS:
         return [(pos[0] + w//2, pos[1] + h//2) for pos in zip(*loc[::-1])]
     
 class IHANDLER(threading.Thread):
-    def __init__(self, paused):
+    def __init__(self, pausedE):
         super().__init__()
         self.daemon = True
         self.name = "Input Handler"
@@ -74,7 +74,7 @@ class IHANDLER(threading.Thread):
         self.eventsQueue = []
         self.event = threading.Event()
 
-        self.paused = paused
+        self.pausedE = pausedE
         self.statusCallback = None
 
         self.start()
@@ -121,7 +121,7 @@ class IHANDLER(threading.Thread):
     def run(self):
         while True:
             self.event.wait()
-            self.paused.wait()
+            self.pausedE.wait()
 
             if self.eventsQueue:
                 self.eventsQueue.pop(0)()
@@ -134,16 +134,16 @@ class GAME(threading.Thread):
         "ApplicationFrameWindow": "Microsoft Roblox"
     }
 
-    def __init__(self, win, handler, config, dataCallback, paused, server=0):
+    def __init__(self, win, IHandler, getCfg, dataCallback, pausedE, server=0):
         super().__init__()
         self.daemon = True
 
         self.win = win
         self.name = win32gui.GetClassName(self.win)
-        self.handler = handler
+        self.IHandler = IHandler
         self.server = server
-        self.config = config
-        self.paused = paused
+        self.getCfg = getCfg
+        self.pausedE = pausedE
 
         self.dataCallback = dataCallback
         self.historyTextCallback = None
@@ -166,7 +166,7 @@ class GAME(threading.Thread):
             case _:
                 return None
                             
-        if path := self.config(["paths", self.getName().lower()]):
+        if path := self.getCfg(["paths", self.getName().lower()]):
             os.startfile(path)
 
         while (newWin := win32gui.FindWindow(self.name, "Roblox")) in [self.win, 0]:
@@ -192,7 +192,7 @@ class GAME(threading.Thread):
             win32gui.MoveWindow(self.win, left, top, W, H, True)
 
     def getscr(self):
-        self.paused.wait()
+        self.pausedE.wait()
 
         self.crashDetection()
 
@@ -234,9 +234,9 @@ class GAME(threading.Thread):
     def findCoords(self, image, interval=.25, threshold=.1):
         ox, oy = None, None
         while True:
-            success, x, y = TOOLS.findPos(image, self.getscr(), threshold=threshold)
+            error, (x, y) = TOOLS.findPos(image, self.getscr())
             
-            if success:
+            if error <= threshold:
                 if ox == x and oy == y:
                     return x, y
                 ox, oy = x, y
@@ -252,26 +252,26 @@ class GAME(threading.Thread):
         for image in images:
             x, y = self.findCoords(image, threshold=threshold)
 
-            self.handler.qClick(self.win, x, y)
+            self.IHandler.qClick(self.win, x, y)
     
     def openServers(self):
         self.findAndClick([FRIEND, JOIN_FRIEND])
 
-        while not TOOLS.findPos(JOIN_BTN, self.getscr(), threshold=0.005)[0]:
+        while not TOOLS.findPos(JOIN_BTN, self.getscr())[0] <= .005:
             sleep(.25)
 
     def joinServer(self, n):
         servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
         pos = servers[TOOLS.clamp(n, 0, len(servers) - 1)]
 
-        self.handler.qClick(self.win, pos[0], pos[1])
+        self.IHandler.qClick(self.win, pos[0], pos[1])
 
     def quitGame(self):
-        self.handler.qPressKey(self.win, "esc")
+        self.IHandler.qPressKey(self.win, "esc")
 
-        self.handler.qPressKey(self.win, "l")
+        self.IHandler.qPressKey(self.win, "l")
 
-        self.handler.qPressKey(self.win, "enter")
+        self.IHandler.qPressKey(self.win, "enter")
 
     def restartGame(self):
         self.quitGame()
@@ -301,7 +301,7 @@ class GAME(threading.Thread):
             ih, iw = scr.shape[:2]
 
             table = scr[TOOLS.clamp(y, 0, ih - h):TOOLS.clamp(y + h, h, ih), 
-                          TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
+                        TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
 
             stats = []
 
@@ -384,11 +384,11 @@ class DiscordWebHook:
 
 class GUI:
     class PausePopUP:
-        def __init__(self, parent, paused):
+        def __init__(self, parent, pausedE):
             self.root = tk.Toplevel(parent)
             self.root.withdraw()
 
-            self.paused = paused
+            self.pausedE = pausedE
 
             self.setup()
 
@@ -414,7 +414,7 @@ class GUI:
                 .pack(side=tk.RIGHT, padx=10, fill=tk.X, expand=True)
             
         def continueAndClose(self):
-            self.paused.unpause()
+            self.pausedE.unpause()
             self.close()
 
         def open(self):
@@ -490,13 +490,13 @@ class GUI:
     def __init__(self):
         self.root = tk.Tk()
 
-        self.paused = threading.Event()
-        self.paused.pause = self.pause
-        self.paused.unpause = self.unpause
+        self.pausedE = threading.Event()
+        self.pausedE.pause = self.pause
+        self.pausedE.unpause = self.unpause
 
         self.config = CONFIG(self.root)
-        self.popup = self.PausePopUP(self.root, self.paused)
-        self.ihandler = IHANDLER(self.paused)
+        self.popup = self.PausePopUP(self.root, self.pausedE)
+        self.ihandler = IHANDLER(self.pausedE)
 
         self.setup()
 
@@ -510,7 +510,7 @@ class GUI:
         self.root.mainloop()
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.paused, server=len(self.games))
+        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.pausedE, server=len(self.games))
 
         self.games.append(game)
         self.GameFrame(self.right_side_SF, game)
@@ -537,11 +537,11 @@ class GUI:
 
     def pause(self):
         self.status.config(text="Status - Paused")
-        self.paused.clear()
+        self.pausedE.clear()
 
     def unpause(self):
         self.status.config(text="Status - Running")
-        self.paused.set()
+        self.pausedE.set()
 
     def setup(self):
         self.root.title("Re:Twisted")
