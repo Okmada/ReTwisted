@@ -32,7 +32,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: github.event.release.html_url
+        upload_url: ${{ github.event.release.html_url }}
         asset_path: ./dist/App
         asset_name: App
         asset_content_type: application/exe
