@@ -16,9 +16,8 @@ jobs:
         cache: 'pip'
 
     - run: pip install -r requirements.txt pyinstaller Pillow
-    - run: pyinstaller --onefile --noconsole --add-data "assets;assets" --add-data "icon.png;." -i icon.png -n App.exe Main.py
+    - run: pyinstaller --onefile --noconsole --add-data "assets;assets" --add-data "icon.png;." -i icon.png -n App Main.py
 
     - uses: actions/upload-artifact@v3
       with:
-        path: dist/App.exe
-        if-no-files-found: error
+        path: dist/*
