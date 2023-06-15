@@ -24,6 +24,8 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+VERSION = "1.0"
+
 W, H = 975, 850
 FOLDER = "assets/"
 
@@ -141,7 +143,7 @@ class GAME(threading.Thread):
         self.win = win
         self.name = win32gui.GetClassName(self.win)
         self.IHandler = IHandler
-        self.server = server
+        self.lPaused = threading.Event()
         self.getCfg = getCfg
         self.pausedE = pausedE
 
@@ -149,6 +151,8 @@ class GAME(threading.Thread):
         self.historyTextCallback = None
 
         self.history = []
+
+        self.setServer(server)
 
         self.start()
 
@@ -183,7 +187,11 @@ class GAME(threading.Thread):
             return self.name
 
     def setServer(self, server):
-        self.server = server
+        self.server = max(0, server - 1)
+        if server <= 0:
+            self.lPaused.clear()
+        else:
+            self.lPaused.set()
 
     def resize(self):
         left, top, right, bot = win32gui.GetWindowRect(self.win)
@@ -193,6 +201,7 @@ class GAME(threading.Thread):
 
     def getscr(self):
         self.pausedE.wait()
+        self.lPaused.wait()
 
         self.crashDetection()
 
@@ -465,6 +474,8 @@ class GUI:
                 self.game.setServer(num)
                 return True
             inte.trace_add("write", lambda *e: validate())
+            print(self.game.server)
+            inte.set(self.game.server + 1)
 
             # tk.Label(info_frame_bottom, text="Server settings") \
             #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
@@ -476,7 +487,9 @@ class GUI:
             tk.Entry(server_frame, textvariable=inte) \
                 .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
             
-            tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10)) \
+            tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10), anchor=tk.W) \
+                .pack(fill=tk.X, side=tk.TOP)
+            tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10), anchor=tk.W) \
                 .pack(fill=tk.X, side=tk.TOP)
 
         def appendToHistory(self, timestamp, num):
@@ -510,7 +523,7 @@ class GUI:
         self.root.mainloop()
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.pausedE, server=len(self.games))
+        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.pausedE, server=(len(self.games) + 1))
 
         self.games.append(game)
         self.GameFrame(self.right_side_SF, game)
@@ -562,7 +575,10 @@ class GUI:
         self.right_side.pack_propagate(False)
 
 
-        tk.Label(self.left_side, text="Re:Twisted - alpha", font=(None, 20), background=self.lbg) \
+        tk.Label(self.left_side, text="Re:Twisted", font=(None, 20), background=self.lbg) \
+            .pack(side=tk.TOP)
+        
+        tk.Label(self.left_side, text=f"version {VERSION}", font=(None, 12), background=self.lbg) \
             .pack(side=tk.TOP, pady=(0, 15))
         
         self.status = tk.Label(self.left_side, text="Status - Paused", background=self.lbg)
@@ -622,17 +638,24 @@ class GUI:
 class CONFIG:
     TEMPLATE = {
         "webhook": {
-            "url": [str, ""],
-            "ping id": [str, ""]
+            "url": [str, "", \
+                    "Webhook url where bot will send message on succesful find"],
+            "ping id": [str, "", \
+                        "User / Role which will be pinged in message"]
         },
         "cape": {
-            "highest": [int, 7000],
-            "lowest": [int, 300]
+            "highest": [int, 7000, \
+                        "Will stop rolling, if it's over this number"],
+            "lowest": [int, 300, \
+                        "Will stop rolling, if it's under this number"]
         },
         "paths": {
-            "microsoft roblox": [str, ""],
-            "roblox player": [str, ""],
-            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract"]
+            "microsoft roblox": [str, "", \
+                        "Path to Microsoft Roblox (required for auto-restart)"],
+            "roblox player": [str, "", \
+                        "Path to Roblox player (required for auto-restart)"],
+            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract", \
+                        "Path to tesseract executable for OCR to work"]
         }
     }
 
@@ -741,6 +764,9 @@ class CONFIG:
                 self.updateList.append(lambda: inpt.set(self.getInDict(self.newConfig, path)))
 
                 inpt.trace_add("write", lambda *e: self.validateAndSet(path, inpt))
+
+                tk.Label(frame, state=tk.DISABLED, text=template[2], font=(None, 10), anchor=tk.W) \
+                    .pack(fill=tk.X, side=tk.TOP)
 
                 tk.Entry(frame, textvariable=inpt, width=50) \
                     .pack(pady=(0, 15), side=tk.LEFT)
