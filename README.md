@@ -4,6 +4,8 @@ I am not playing this game, so I won't be contributing actively (big bugs might 
 
 Contributions are appreciated.
 
+[Discord server](https://discord.gg/6TAvTyHCnZ) for suggestions and support
+
 ## Installation
 
 1. Download the latest build from [releases](https://github.com/Okmada/ReTwisted/releases).
