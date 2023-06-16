@@ -734,7 +734,7 @@ class CONFIG:
         if save:
             self.config = self.fitDictToDict(self.TEMPLATE, self.newConfig)
 
-            pytesseract.pytesseract.tesseract_cmd = self.config.getSetting(["paths", "tesseract"])
+            pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
 
             self.write()
 
