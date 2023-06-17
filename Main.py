@@ -194,6 +194,10 @@ class GAME(threading.Thread):
             self.lPaused.set()
 
     def resize(self):
+        state = win32gui.GetWindowPlacement(self.win)[1]
+        if state in [2, 3]:
+            win32gui.ShowWindow(self.win, 1)
+
         left, top, right, bot = win32gui.GetWindowRect(self.win)
         w, h = right - left, bot - top
         if w != W or h != H:
