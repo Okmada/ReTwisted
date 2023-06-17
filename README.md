@@ -4,7 +4,9 @@ I am not playing this game, so I won't be contributing actively (big bugs might 
 
 Contributions are appreciated.
 
-[Discord server](https://discord.gg/6TAvTyHCnZ) for suggestions and support
+Supports Microsoft Roblox and Roblox Player.
+
+[Discord server](https://discord.gg/yr7FsfGUXh) for suggestions and support
 
 ## Installation
 
