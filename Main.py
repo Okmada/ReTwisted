@@ -103,8 +103,11 @@ class IHANDLER(threading.Thread):
                 pydirectinput.leftClick(mx + x, my + y)
 
     def qClick(self, win, x, y):
-        self.eventsQueue.append(lambda: self.click(win, x, y))
+        func = lambda: self.click(win, x, y)
+        self.eventsQueue.append(func)
         self.event.set()
+
+        return func
 
     @staticmethod
     def pressKey(win, key, time=.25):
@@ -117,8 +120,16 @@ class IHANDLER(threading.Thread):
         pydirectinput.keyUp(key)
 
     def qPressKey(self, win, key):
-        self.eventsQueue.append(lambda: self.pressKey(win, key))
+        func = lambda: self.pressKey(win, key)
+        self.eventsQueue.append(func)
         self.event.set()
+
+        return func
+    
+    def awaitFunc(self, func):
+        while func in self.eventsQueue:
+            sleep(.1)
+
 
     def run(self):
         while True:
@@ -126,7 +137,8 @@ class IHANDLER(threading.Thread):
             self.pausedE.wait()
 
             if self.eventsQueue:
-                self.eventsQueue.pop(0)()
+                self.eventsQueue[0]()
+                del self.eventsQueue[0]
             else:
                 self.event.clear()
 
