@@ -428,7 +428,7 @@ class GUI:
             frame.pack(padx=15, pady=15, fill=tk.BOTH, expand=True)
 
             tk.Label(frame, text="Good server have been found", font=(None, 16)).pack()
-            tk.Label(frame, text="Do you wish to continue", font=(None, 14)).pack()
+            tk.Label(frame, text="Would you like to continue rerolling?", font=(None, 14)).pack()
 
             buttons = tk.Frame(frame)
             buttons.pack(side=tk.BOTTOM, fill=tk.X, expand=True)
