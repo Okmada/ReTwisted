@@ -668,7 +668,7 @@ class CONFIG:
                         "Path to Microsoft Roblox (required for auto-restart)"],
             "roblox player": [str, "", \
                         "Path to Roblox player (required for auto-restart)"],
-            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract", \
+            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", \
                         "Path to tesseract executable for OCR to work"]
         }
     }
