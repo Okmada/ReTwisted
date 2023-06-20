@@ -483,15 +483,13 @@ class GUI:
             info_frame_bottom = tk.Frame(info_frame)
             info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
 
-            inte = tk.StringVar(value=self.game.server)
+            inte = tk.StringVar(value=(self.game.server + 1))
             def validate():
                 num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
                 inte.set(num)
                 self.game.setServer(num)
                 return True
             inte.trace_add("write", lambda *e: validate())
-            print(self.game.server)
-            inte.set(self.game.server + 1)
 
             # tk.Label(info_frame_bottom, text="Server settings") \
             #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
