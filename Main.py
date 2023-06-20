@@ -684,7 +684,7 @@ class CONFIG:
         self.load()
         self.write()
 
-        pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
+        self.tesseract = Tesseract(self.setSetting, self.getSetting, parent)
 
         self.setup()
 
@@ -748,7 +748,7 @@ class CONFIG:
         if save:
             self.config = self.fitDictToDict(self.TEMPLATE, self.newConfig)
 
-            pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
+            self.tesseract.loadTesseract()
 
             self.write()
 
@@ -756,6 +756,10 @@ class CONFIG:
 
     def getSetting(self, path):
         return self.getInDict(self.config, [e.lower() for e in path])
+
+    def setSetting(self, path, value):
+        self.setInDict(self.config, path, value)
+        self.write()
 
     def configGUIGenerator(self, template, master, path=[]):
         if path:
@@ -833,7 +837,89 @@ class CONFIG:
             case list():
                 conf = CONFIG.getInDict(config, path)
                 return CONFIG.defaultIfInvalid(conf, template[0], template[1])
+            
+class Tesseract:
+    def __init__(self, setSetting, getSetting, parent):
+        self.setSetting = setSetting
+        self.getSetting = getSetting
+
+        self.root = tk.Toplevel(parent)
+        self.root.withdraw()
+
+        self.setup()
+
+        self.loadTesseract()
+
+    def setup(self):
+        self.root.title("Re:Twisted - tesseract setup")
+        self.root.geometry("450x275")
+        self.root.resizable(False, False)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
         
+        frame = tk.Frame(self.root)
+        frame.pack(padx=15, pady=15, fill=tk.BOTH, expand=True)
+
+        tk.Label(frame, text="Tesseract not detected", font=(None, 16)).pack()
+        tk.Label(frame, text="Set the path manually or use auto search within the folder.", font=(None, 12)).pack()
+
+        # BUTTONS FRAME
+        buttons = tk.Frame(frame)
+        buttons.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
+
+        tk.Button(buttons, text="Save", font=(None, 14), command=lambda: self.close(True)) \
+            .pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        tk.Button(buttons, text="Close", font=(None, 14), command=self.close) \
+            .pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
+        
+        # PATH FRAME
+        pathFrame = tk.Frame(frame)
+        pathFrame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
+        tk.Label(pathFrame, text="Path", font=(None, 12)).pack(side=tk.LEFT, pady=5)
+
+        self.pathVar = tk.StringVar(value=self.getSetting(["paths", "tesseract"]))
+
+        pathE = tk.Entry(pathFrame, textvariable=self.pathVar)
+        pathE.pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
+        
+        # AUTOSEARCH FRAME
+        autosearchFrame = tk.Frame(frame)
+        autosearchFrame.pack(side=tk.BOTTOM, fill=tk.X)
+        tk.Label(autosearchFrame, text="Auto-find", font=(None, 12)).pack(side=tk.TOP, fill=tk.X)
+
+        autosearchVar = tk.StringVar(value="C:\\Program Files")
+        def autosearchFun():
+            for root, dirs, files in os.walk(autosearchVar.get()):
+                if "tesseract.exe" in files:
+                    self.pathVar.set(os.path.join(root, "tesseract.exe"))
+                    return
+
+
+        tk.Entry(autosearchFrame, textvariable=autosearchVar) \
+            .pack(fill=tk.BOTH, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
+        
+        tk.Button(autosearchFrame, text="Find", font=(None, 14), command=autosearchFun) \
+            .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
+        
+
+    def loadTesseract(self):
+        pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
+
+        try:
+            pytesseract.get_tesseract_version()
+        except:
+            self.open()
+
+    def open(self):
+        self.pathVar.set(self.getSetting(["paths", "tesseract"]))
+        self.root.deiconify()
+
+    def close(self, save=False):
+        path = self.pathVar.get()
+        if save and path:
+            self.setSetting(["paths", "tesseract"], path)
+
+        self.root.withdraw()
                             
 if __name__ == '__main__':
     GUI()
