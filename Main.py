@@ -890,8 +890,8 @@ class Tesseract:
         autosearchVar = tk.StringVar(value="C:\\Program Files")
         def autosearchFun():
             for root, dirs, files in os.walk(autosearchVar.get()):
-                if "tesseract.exe" in files:
-                    self.pathVar.set(os.path.join(root, "tesseract.exe"))
+                if (file := "tesseract.exe") in files:
+                    self.pathVar.set(os.path.join(root, file))
                     return
 
 
