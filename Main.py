@@ -175,15 +175,22 @@ class GAME(threading.Thread):
                     return False
                 win32gui.PostMessage(win, win32con.WM_CLOSE, 0, 0)
 
+                for root, dirs, files in os.walk(os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
+                    if (file := 'Roblox Player.lnk') in files:
+                        path = os.path.join(root, file)
+                        break
+
             case "ApplicationFrameWindow":
                 if win32gui.IsWindow(self.win):
                     return False
                 
+                robloxFamilyName = os.popen('powershell Get-AppxPackage -Name "ROBLOXCORPORATION.ROBLOX" | findstr /c:"PackageFamilyName"').read().split(":")[1].strip()
+                path = f"shell:appsFolder\{robloxFamilyName}!App"
+                
             case _:
                 return None
                             
-        if path := self.getCfg(["paths", self.getName().lower()]):
-            os.startfile(path)
+        os.startfile(path)
 
         while (newWin := win32gui.FindWindow(self.name, "Roblox")) in [self.win, 0]:
             sleep(.1)
@@ -664,10 +671,6 @@ class CONFIG:
                         "Will stop rolling, if it's under this number"]
         },
         "paths": {
-            "microsoft roblox": [str, "", \
-                        "Path to Microsoft Roblox (required for auto-restart)"],
-            "roblox player": [str, "", \
-                        "Path to Roblox player (required for auto-restart)"],
             "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", \
                         "Path to tesseract executable for OCR to work"]
         }
