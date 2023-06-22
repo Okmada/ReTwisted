@@ -24,7 +24,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 W, H = 975, 850
 FOLDER = "assets/"
