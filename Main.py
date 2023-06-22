@@ -928,11 +928,12 @@ class Tesseract:
         self.root.deiconify()
 
     def close(self, save=False):
+        self.root.withdraw()
+
         path = self.pathVar.get()
         if save and path:
             self.setSetting(["paths", "tesseract"], path)
-
-        self.root.withdraw()
+            self.loadTesseract()
                             
 if __name__ == '__main__':
     GUI()
