@@ -46,26 +46,6 @@ TWISTED = cv2.imread(resource_path(FOLDER + "twisted.png"))
 
 DESKTOP = win32gui.GetDesktopWindow()
 
-class TOOLS:
-    @staticmethod
-    def clamp(n, minn, maxn):
-        return max(min(maxn, n), minn)
-    
-    @staticmethod
-    def findPos(template, image):
-        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
-        error, _, loc, _ = cv2.minMaxLoc(res)
-        x, y = loc
-
-        h, w = template.shape[:2]
-        return error, (x + w//2, y + h//2)
-    
-    def findMultiplePos(template, image, threshold=.9):
-        res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-        loc = np.where(res >= threshold)
-
-        h, w = template.shape[:2]
-        return [(pos[0] + w//2, pos[1] + h//2) for pos in zip(*loc[::-1])]
     
 class IHANDLER(threading.Thread):
     def __init__(self, pausedE):
@@ -266,7 +246,7 @@ class GAME(threading.Thread):
     def findCoords(self, image, interval=.25, threshold=.1):
         ox, oy = None, None
         while True:
-            error, (x, y) = TOOLS.findPos(image, self.getscr())
+            error, (x, y) = self.findPos(image, self.getscr())
             
             if error <= threshold:
                 if ox == x and oy == y:
@@ -289,12 +269,12 @@ class GAME(threading.Thread):
     def openServers(self):
         self.findAndClick([FRIEND, JOIN_FRIEND])
 
-        while not TOOLS.findPos(JOIN_BTN, self.getscr())[0] <= .005:
+        while not self.findPos(JOIN_BTN, self.getscr())[0] <= .005:
             sleep(.25)
 
     def joinServer(self, n):
-        servers = TOOLS.findMultiplePos(JOIN_BTN, self.getscr())
-        pos = servers[TOOLS.clamp(n, 0, len(servers) - 1)]
+        servers = self.findMultiplePos(JOIN_BTN, self.getscr())
+        pos = servers[max(min(len(servers) - 1, n), 0)]
 
         self.IHandler.qClick(self.win, pos[0], pos[1])
 
@@ -332,8 +312,10 @@ class GAME(threading.Thread):
             h, w = STATS.shape[:2]
             ih, iw = scr.shape[:2]
 
-            table = scr[TOOLS.clamp(y, 0, ih - h):TOOLS.clamp(y + h, h, ih), 
-                        TOOLS.clamp(x, 0, iw - w):TOOLS.clamp(x + w, w, iw)]
+            clamp = lambda n, minn, maxn: max(min(maxn, n), minn)
+
+            table = scr[clamp(y, 0, ih - h):clamp(y + h, h, ih), 
+                        clamp(x, 0, iw - w):clamp(x + w, w, iw)]
 
             stats = []
 
@@ -392,6 +374,23 @@ class GAME(threading.Thread):
 
             timebeg = time.time()
             self.restartGame()
+
+    @staticmethod
+    def findPos(template, image):
+        res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
+        error, _, loc, _ = cv2.minMaxLoc(res)
+        x, y = loc
+
+        h, w = template.shape[:2]
+        return error, (x + w//2, y + h//2)
+    
+    @staticmethod
+    def findMultiplePos(template, image, threshold=.9):
+        res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+        loc = np.where(res >= threshold)
+
+        h, w = template.shape[:2]
+        return [(pos[0] + w//2, pos[1] + h//2) for pos in zip(*loc[::-1])]
 
 class DiscordWebHook:
     def send(config, stats):
