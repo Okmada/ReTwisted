@@ -128,6 +128,11 @@ class GAME(threading.Thread):
         "ApplicationFrameWindow": "Microsoft Roblox"
     }
 
+    MULTIPLIERS = {
+        "WINDOWSCLIENT": 1.5,
+        "ApplicationFrameWindow": 3
+    }
+
     def __init__(self, win, IHandler, getCfg, dataCallback, pausedE, server=0):
         super().__init__()
         self.daemon = True
@@ -273,8 +278,14 @@ class GAME(threading.Thread):
             sleep(.25)
 
     def joinServer(self, n):
+        for _ in range(max(0, int((n - 1) * self.MULTIPLIERS[self.getName(False)]))):
+            self.IHandler.qClick(self.win, W - 20, H - 20)
+        self.IHandler.awaitFunc(self.IHandler.qClick(self.win, W - 20, H - 20))
+
+        sleep(.5)
+
         servers = self.findMultiplePos(JOIN_BTN, self.getscr())
-        pos = servers[max(min(len(servers) - 1, n), 0)]
+        pos = servers[min(1, n)]
 
         self.IHandler.qClick(self.win, pos[0], pos[1])
 
