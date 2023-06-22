@@ -39,10 +39,3 @@ Make sure you have permissions in that server to edit channels.
 4. Go to "My Account".
 5. Click on the three dots next to your profile.
 6. Click "Copy User ID".
-
-
-### How to get Roblox paths
-
-1. Press Win + R and enter "shell:AppsFolder".
-2. Drag and drop Microsoft Roblox and Roblox Player to the folder of your choice (you can't delete it, or it won't work anymore).
-3. Then, for each, right-click the icon and press "copy" and paste it in settings.
