@@ -24,7 +24,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-VERSION = "1.1"
+VERSION = "1.2"
 
 W, H = 975, 850
 FOLDER = "assets/"
@@ -246,6 +246,8 @@ class GAME(threading.Thread):
         img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
         img = img[:,:,:3]
 
+        img = cv2.resize(img, (W, H))
+
         return img.astype(dtype=np.uint8)
     
     def findCoords(self, image, interval=.25, threshold=.1):
@@ -272,7 +274,7 @@ class GAME(threading.Thread):
             self.IHandler.qClick(self.win, x, y)
     
     def openServers(self):
-        self.findAndClick([FRIEND, JOIN_FRIEND])
+        self.findAndClick([FRIEND, JOIN_FRIEND], threshold=.075)
 
         while not self.findPos(JOIN_BTN, self.getscr())[0] <= .005:
             sleep(.25)
@@ -305,6 +307,10 @@ class GAME(threading.Thread):
         ox, oy = None, None
         while True:
             sleep(.25)
+
+            if self.getName(False) == "ApplicationFrameWindow":
+                self.IHandler.awaitFunc(self.IHandler.qClick(self.win, W // 2, H // 4 * 3))
+
             scr = self.getscr()
 
             res = cv2.matchTemplate(scr, STATS, cv2.TM_SQDIFF_NORMED, mask=STATS_MASK)
@@ -353,7 +359,7 @@ class GAME(threading.Thread):
                 try:
                     value = int(value)
                 except ValueError:
-                    value = float(value)
+                    value = float(value[::-1].replace(".", "", max(0, value.count(".") - 1))[::-1])
 
                 stats.append(value)
             
