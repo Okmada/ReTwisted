@@ -133,7 +133,7 @@ class GAME(threading.Thread):
         "ApplicationFrameWindow": 3
     }
 
-    def __init__(self, win, IHandler, getCfg, dataCallback, pausedE, server=0):
+    def __init__(self, win, parent, IHandler, getCfg, dataCallback, pausedE, server=0):
         super().__init__()
         self.daemon = True
 
@@ -151,7 +151,57 @@ class GAME(threading.Thread):
 
         self.setServer(server)
 
+        self.frame = tk.Frame(parent, width=470, height=250, background="#aaa")
+        self.frame.pack(padx=5, pady=5)
+        self.frame.pack_propagate(False)
+
+        self.setup()
+
         self.start()
+
+    def setup(self):
+        history_frame = tk.Frame(self.frame, width=210)
+        history_frame.pack_propagate(False)
+        history_frame.pack(padx=5, pady=5, side=tk.RIGHT, fill=tk.Y)
+
+        self.historyText = tk.Text(history_frame, state=tk.DISABLED)
+        scrollbar = tk.Scrollbar(history_frame, command=self.historyText.yview)
+        self.historyText['yscrollcommand'] = scrollbar.set
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.historyText.pack(expand=True, fill=tk.X)
+
+        info_frame = tk.Frame(self.frame, width=500)
+        info_frame.pack_propagate(False)
+        info_frame.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.Y)
+
+        tk.Label(info_frame, text=self.getName()).pack(side=tk.TOP, padx=10, pady=10)
+
+        info_frame_bottom = tk.Frame(info_frame)
+        info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
+
+        inte = tk.StringVar(value=(self.server + 1))
+        def validate():
+            num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
+            inte.set(num)
+            self.setServer(num)
+            return True
+        inte.trace_add("write", lambda *e: validate())
+
+        # tk.Label(info_frame_bottom, text="Server settings") \
+        #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
+        
+        server_frame = tk.Frame(info_frame_bottom)
+        server_frame.pack(fill=tk.X, side=tk.TOP)
+        tk.Label(server_frame, text="Server:") \
+            .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
+        tk.Entry(server_frame, textvariable=inte) \
+            .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
+        
+        tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10), anchor=tk.W) \
+            .pack(fill=tk.X, side=tk.TOP)
+        tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10), anchor=tk.W) \
+            .pack(fill=tk.X, side=tk.TOP)
 
     def crashDetection(self):
         match self.name:
@@ -280,7 +330,7 @@ class GAME(threading.Thread):
             sleep(.25)
 
     def joinServer(self, n):
-        for _ in range(max(0, int((n - 1) * self.MULTIPLIERS[self.getName(False)]))):
+        for _ in range(max(0, int((n - 1) * self.MULTIPLIERS[self.name]))):
             self.IHandler.qClick(self.win, W - 20, H - 20)
         self.IHandler.awaitFunc(self.IHandler.qClick(self.win, W - 20, H - 20))
 
@@ -308,7 +358,7 @@ class GAME(threading.Thread):
         while True:
             sleep(.25)
 
-            if self.getName(False) == "ApplicationFrameWindow":
+            if self.name == "ApplicationFrameWindow":
                 self.IHandler.awaitFunc(self.IHandler.qClick(self.win, W // 2, H // 4 * 3))
 
             scr = self.getscr()
@@ -385,7 +435,10 @@ class GAME(threading.Thread):
 
             timeend = time.time()
             self.history.append([timeend - timebeg, cape])
-            self.historyTextCallback(timeend, cape)
+
+            self.historyText.configure(state=tk.NORMAL)
+            self.historyText.insert("1.0", f"{time.strftime('%H:%M:%S', time.localtime(timeend))} - {cape} J/kg\n")
+            self.historyText.configure(state=tk.DISABLED)
 
             self.dataCallback(stats)
 
@@ -471,72 +524,6 @@ class GUI:
         def close(self):
             self.root.withdraw()
 
-    class GameFrame:
-        def __init__(self, parent, game):
-            self.game = game
-
-            self.frame = tk.Frame(parent, width=470, height=250, background="#aaa")
-            self.frame.pack(padx=5, pady=5)
-            self.frame.pack_propagate(False)
-
-            self.setup()
-
-            game.historyTextCallback = self.appendToHistory
-
-        def setup(self):
-            history_frame = tk.Frame(self.frame, width=210)
-            history_frame.pack_propagate(False)
-            history_frame.pack(padx=5, pady=5, side=tk.RIGHT, fill=tk.Y)
-
-            self.historyText = tk.Text(history_frame, state=tk.DISABLED)
-            scrollbar = tk.Scrollbar(history_frame, command=self.historyText.yview)
-            self.historyText['yscrollcommand'] = scrollbar.set
-
-            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-            self.historyText.pack(expand=True, fill=tk.X)
-
-            self.game.historyUpdate = self.appendToHistory
-
-            info_frame = tk.Frame(self.frame, width=500)
-            info_frame.pack_propagate(False)
-            info_frame.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.Y)
-
-            tk.Label(info_frame, text=self.game.getName()).pack(side=tk.TOP, padx=10, pady=10)
-
-            info_frame_bottom = tk.Frame(info_frame)
-            info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
-
-            inte = tk.StringVar(value=(self.game.server + 1))
-            def validate():
-                num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
-                inte.set(num)
-                self.game.setServer(num)
-                return True
-            inte.trace_add("write", lambda *e: validate())
-
-            # tk.Label(info_frame_bottom, text="Server settings") \
-            #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
-            
-            server_frame = tk.Frame(info_frame_bottom)
-            server_frame.pack(fill=tk.X, side=tk.TOP)
-            tk.Label(server_frame, text="Server:") \
-                .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
-            tk.Entry(server_frame, textvariable=inte) \
-                .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
-            
-            tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10), anchor=tk.W) \
-                .pack(fill=tk.X, side=tk.TOP)
-            tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10), anchor=tk.W) \
-                .pack(fill=tk.X, side=tk.TOP)
-
-        def appendToHistory(self, timestamp, num):
-            self.historyText.configure(state=tk.NORMAL)
-            self.historyText.insert("1.0", f"{time.strftime('%H:%M:%S', time.localtime(timestamp))} - {num} J/kg\n")
-            self.historyText.configure(state=tk.DISABLED)
-
-        def destroy(self):
-            self.frame.pack_forget()
-
     def __init__(self):
         self.root = tk.Tk()
 
@@ -560,10 +547,15 @@ class GUI:
         self.root.mainloop()
 
     def newGame(self, win):
-        game = GAME(win, self.ihandler, self.config.getSetting, self.handleData, self.pausedE, server=(len(self.games) + 1))
-
-        self.games.append(game)
-        self.GameFrame(self.right_side_SF, game)
+        self.games.append(GAME(
+            win, 
+            self.right_side_SF, 
+            self.ihandler, 
+            self.config.getSetting, 
+            self.handleData, 
+            self.pausedE, 
+            server=(len(self.games) + 1)
+        ))
 
     def handleData(self, stats):
         cape = stats["FORECAST"]["CAPE"]
