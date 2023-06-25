@@ -695,7 +695,7 @@ class CONFIG:
         self.load()
         self.write()
 
-        self.tesseract = Tesseract(self.setSetting, self.getSetting, parent)
+        self.tesseract = TESSERACT(self.setSetting, self.getSetting, parent)
 
         self.setup()
 
@@ -849,7 +849,7 @@ class CONFIG:
                 conf = CONFIG.getInDict(config, path)
                 return CONFIG.defaultIfInvalid(conf, template[0], template[1])
             
-class Tesseract:
+class TESSERACT:
     def __init__(self, setSetting, getSetting, parent):
         self.setSetting = setSetting
         self.getSetting = getSetting
@@ -916,9 +916,7 @@ class Tesseract:
     def loadTesseract(self):
         pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
 
-        try:
-            pytesseract.get_tesseract_version()
-        except:
+        if not self.testTesseract():
             self.open()
 
     def open(self):
@@ -932,6 +930,14 @@ class Tesseract:
         if save and path:
             self.setSetting(["paths", "tesseract"], path)
             self.loadTesseract()
-                            
+
+    @staticmethod
+    def testTesseract():
+        try:
+            pytesseract.get_tesseract_version()
+            return True
+        except:
+            return False
+
 if __name__ == '__main__':
     GUI()
