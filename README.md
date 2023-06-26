@@ -4,8 +4,6 @@ I am not playing this game, so I won't be contributing actively (big bugs might 
 
 Contributions are appreciated.
 
-Supports Microsoft Roblox and Roblox Player.
-
 [Discord server](https://discord.gg/yr7FsfGUXh) for suggestions and support
 
 ## Installation
@@ -17,6 +15,8 @@ Supports Microsoft Roblox and Roblox Player.
 ## Running
 
 Make sure you have the light theme in Roblox.
+
+Supports Microsoft Roblox and Roblox Player.
 
 To have Roblox registered in the app, first start Roblox and then start the app.
 
