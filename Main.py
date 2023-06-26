@@ -347,7 +347,7 @@ class GAME(threading.Thread):
     def openServers(self):
         self.findAndClick([FRIEND, JOIN_FRIEND], threshold=.075)
 
-        while not (error := self.findPos(JOIN_BTN, self.getscr())[0]) <= .005:
+        while not (error := self.findPos(JOIN_BTN[1], self.getscr())[0]) <= .005:
             self.status = f"Waiting for join button, err {error}"
             sleep(.25)
 
@@ -385,7 +385,7 @@ class GAME(threading.Thread):
 
             scr = self.getscr()
 
-            res = cv2.matchTemplate(scr, STATS, cv2.TM_SQDIFF_NORMED, mask=STATS_MASK)
+            res = cv2.matchTemplate(scr, STATS[1], cv2.TM_SQDIFF_NORMED, mask=STATS_MASK[1])
             lerror, herror, loc, _ = cv2.minMaxLoc(res)
             success = lerror <= .1
             x, y = loc
@@ -398,7 +398,7 @@ class GAME(threading.Thread):
                     ox, oy = x, y
                     continue
 
-            h, w = STATS.shape[:2]
+            h, w = STATS[1].shape[:2]
             ih, iw = scr.shape[:2]
 
             clamp = lambda n, minn, maxn: max(min(maxn, n), minn)
@@ -408,9 +408,9 @@ class GAME(threading.Thread):
 
             stats = []
 
-            contours, _ = cv2.findContours(STATS_DATA_MASK, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(STATS_DATA_MASK[1], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for contour in contours[::-1]:
-                contourMask = np.zeros_like(STATS_DATA_MASK)
+                contourMask = np.zeros_like(STATS_DATA_MASK[1])
 
                 cv2.drawContours(contourMask, [contour], 0, (255), -1)
 
