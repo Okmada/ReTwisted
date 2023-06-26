@@ -55,6 +55,7 @@ class IHANDLER(threading.Thread):
         self.daemon = True
         self.name = "Input Handler"
 
+        self.counter = 0
         self.eventsQueue = []
         self.event = threading.Event()
 
@@ -121,6 +122,8 @@ class IHANDLER(threading.Thread):
             if self.eventsQueue:
                 self.eventsQueue[0]()
                 del self.eventsQueue[0]
+
+                self.counter += 1
             else:
                 self.event.clear()
 
@@ -508,7 +511,7 @@ class DiscordWebHook:
 class GUI:
     class PausePopUP:
         def __init__(self, parent, pausedE):
-            self.root = tk.Toplevel(parent)
+            self.root = tk.Toplevel(parent, background="red")
             self.root.withdraw()
 
             self.pausedE = pausedE
@@ -521,9 +524,12 @@ class GUI:
             self.root.resizable(False, False)
 
             self.root.protocol("WM_DELETE_WINDOW", self.close)
+
+            redFrame = tk.Frame(self.root)
+            redFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
             
-            frame = tk.Frame(self.root)
-            frame.pack(padx=15, pady=15, fill=tk.BOTH, expand=True)
+            frame = tk.Frame(redFrame)
+            frame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
 
             tk.Label(frame, text="Good server have been found", font=(None, 16)).pack()
             tk.Label(frame, text="Would you like to continue rerolling?", font=(None, 14)).pack()
@@ -700,6 +706,7 @@ class GUI:
 
         out.append("# Input handler")
         out.append(f"[Queue size][{len(self.ihandler.eventsQueue)}]")
+        out.append(f"[Actions][{self.ihandler.counter}]")
         out.append(f"[Is alive][{self.ihandler.is_alive()}]")
 
         out.append("# Games")
