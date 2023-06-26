@@ -14,13 +14,13 @@ Contributions are appreciated.
 
 ## Running
 
-Make sure you have the light theme in Roblox.
+- Make sure you have the light theme in Roblox.
 
-Supports Microsoft Roblox and Roblox Player.
+- Supports Microsoft Roblox and Roblox Player.
 
-To have Roblox registered in the app, first start Roblox and then start the app.
+- To have Roblox registered in the app, first start Roblox and then start the app.
 
-Before starting the rolling, make sure you are on the title screen of Twisted (the screen where you have the big green button).
+- Before starting the rolling, make sure you are on the title screen of Twisted (the screen where you have the big green button).
 
 ### How to get Discord webhook URL
 
