@@ -2,12 +2,14 @@ from tkinter import font
 from ctypes import windll
 from time import sleep
 from requests import post
+import win32clipboard
 import win32gui
 import win32ui
 import win32con
 import numpy as np
 import cv2
 import threading
+import platform
 import pytesseract
 import pydirectinput
 import time
@@ -29,24 +31,24 @@ VERSION = "1.2"
 W, H = 975, 850
 FOLDER = "assets/"
 
-FRIEND = cv2.imread(resource_path(FOLDER + "friend.png"))
-JOIN_FRIEND = cv2.imread(resource_path(FOLDER + "join-friend.png"))
+FRIEND = "Friend", cv2.imread(resource_path(FOLDER + "friend.png"))
+JOIN_FRIEND = "Join friend", cv2.imread(resource_path(FOLDER + "join-friend.png"))
 
-JOIN_BTN = cv2.imread(resource_path(FOLDER + "join-button.png"))
+JOIN_BTN = "Join button", cv2.imread(resource_path(FOLDER + "join-button.png"))
 
-PLAY = cv2.imread(resource_path(FOLDER + "play.png"))
-MENU = cv2.imread(resource_path(FOLDER + "menu-icon.png"))
-WEATHER = cv2.imread(resource_path(FOLDER + "weather-icon.png"))
+PLAY = "Play", cv2.imread(resource_path(FOLDER + "play.png"))
+MENU = "Menu", cv2.imread(resource_path(FOLDER + "menu-icon.png"))
+WEATHER = "WEather", cv2.imread(resource_path(FOLDER + "weather-icon.png"))
 
-STATS = cv2.imread(resource_path(FOLDER + "stats.png"))
-STATS_MASK = cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY)
-STATS_DATA_MASK = cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-data-mask.png")), cv2.COLOR_BGR2GRAY)
+STATS = "Stats", cv2.imread(resource_path(FOLDER + "stats.png"))
+STATS_MASK = "Stats mask", cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY)
+STATS_DATA_MASK = "Stats data mask", cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-data-mask.png")), cv2.COLOR_BGR2GRAY)
 
-TWISTED = cv2.imread(resource_path(FOLDER + "twisted.png"))
+TWISTED = "Twisted", cv2.imread(resource_path(FOLDER + "twisted.png"))
 
 DESKTOP = win32gui.GetDesktopWindow()
 
-    
+
 class IHANDLER(threading.Thread):
     def __init__(self, pausedE):
         super().__init__()
@@ -149,6 +151,8 @@ class GAME(threading.Thread):
 
         self.history = []
 
+        self.status = None
+
         self.setServer(server)
 
         self.frame = tk.Frame(parent, width=470, height=250, background="#aaa")
@@ -202,6 +206,20 @@ class GAME(threading.Thread):
             .pack(fill=tk.X, side=tk.TOP)
         tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10), anchor=tk.W) \
             .pack(fill=tk.X, side=tk.TOP)
+        
+        self.copyScreenshotBtn = tk.Button(info_frame_bottom, text="Copy screenshot", 
+                                           command=lambda: GUI.coppiedButton(self.copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
+        self.copyScreenshotBtn.pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
+        
+    def copyScreenshot(self):
+        image = self.getscr(True)
+
+        data = cv2.imencode('.dib', image)[1]
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data[14:])
+        win32clipboard.CloseClipboard()
 
     def crashDetection(self):
         match self.name:
@@ -257,9 +275,10 @@ class GAME(threading.Thread):
         if w != W or h != H:
             win32gui.MoveWindow(self.win, left, top, W, H, True)
 
-    def getscr(self):
-        self.pausedE.wait()
-        self.lPaused.wait()
+    def getscr(self, force=False):
+        if not force:
+            self.pausedE.wait()
+            self.lPaused.wait()
 
         self.crashDetection()
 
@@ -303,7 +322,9 @@ class GAME(threading.Thread):
     def findCoords(self, image, interval=.25, threshold=.1):
         ox, oy = None, None
         while True:
-            error, (x, y) = self.findPos(image, self.getscr())
+            error, (x, y) = self.findPos(image[1], self.getscr())
+
+            self.status = f"img {image[0]}, err {error}, coords {(x, y)}"
             
             if error <= threshold:
                 if ox == x and oy == y:
@@ -326,7 +347,8 @@ class GAME(threading.Thread):
     def openServers(self):
         self.findAndClick([FRIEND, JOIN_FRIEND], threshold=.075)
 
-        while not self.findPos(JOIN_BTN, self.getscr())[0] <= .005:
+        while not (error := self.findPos(JOIN_BTN, self.getscr())[0]) <= .005:
+            self.status = f"Waiting for join button, err {error}"
             sleep(.25)
 
     def joinServer(self, n):
@@ -336,7 +358,7 @@ class GAME(threading.Thread):
 
         sleep(.5)
 
-        servers = self.findMultiplePos(JOIN_BTN, self.getscr())
+        servers = self.findMultiplePos(JOIN_BTN[1], self.getscr())
         pos = servers[min(1, n)]
 
         self.IHandler.qClick(self.win, pos[0], pos[1])
@@ -531,7 +553,7 @@ class GUI:
         self.pausedE.pause = self.pause
         self.pausedE.unpause = self.unpause
 
-        self.config = CONFIG(self.root)
+        self.config = CONFIG(self.root, self.copyReportToClipboard)
         self.popup = self.PausePopUP(self.root, self.pausedE)
         self.ihandler = IHANDLER(self.pausedE)
 
@@ -663,6 +685,42 @@ class GUI:
 
         self.right_side_SF.bind("<Configure>", \
             lambda event, canvas=right_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+    def copyReportToClipboard(self):
+        out = []
+        out.append("# System Stats")
+        out.append(f"[OS][{platform.platform()}]")
+
+        out.append("# Re:twisted")
+        out.append(f"[Version][{VERSION}]")
+        out.append(f"[Paused][{not self.pausedE.is_set()}]")
+        out.append(f"[Discord Webhook URL][{bool(self.config.getSetting(['webhook', 'url']))}]")
+        out.append(f"[Discord Ping ID][{self.config.getSetting(['webhook', 'ping id'])}]")
+        out.append(f"[Tesseract][{TESSERACT.testTesseract()}]")
+
+        out.append("# Input handler")
+        out.append(f"[Queue size][{len(self.ihandler.eventsQueue)}]")
+        out.append(f"[Is alive][{self.ihandler.is_alive()}]")
+
+        out.append("# Games")
+        for game in self.games:
+            out.append(f"## {game.getName()}")
+            out.append(f"[Paused][{not game.lPaused.is_set()}]")
+            out.append(f"[Status][{game.status}]")
+            out.append(f"[Server][{game.server}]")
+            out.append(f"[Rolled servers][{len(game.history)}]")
+            out.append(f"[Is alive][{game.is_alive()}]")
+
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardText("```md\n%s\n```" % "\n".join(out))
+        win32clipboard.CloseClipboard()
+
+    @staticmethod
+    def coppiedButton(button, text, func):
+        button.config(text="Coppied")
+        func()
+        button.after(500, lambda: button.config(text=text))
 
 class CONFIG:
     TEMPLATE = {
@@ -686,9 +744,11 @@ class CONFIG:
 
     CONFIG_FILE = ".config.json"
 
-    def __init__(self, parent):
+    def __init__(self, parent, copyReportToClipboard):
         self.root = tk.Toplevel(parent)
         self.root.withdraw()
+
+        self.copyReportToClipboard = copyReportToClipboard
 
         self.updateList = []
 
@@ -705,6 +765,10 @@ class CONFIG:
         self.root.resizable(True, True)
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
+
+        self.debugBtn = tk.Button(self.root, text="Copy debug info", 
+                                  command=lambda: GUI.coppiedButton(self.debugBtn, "Copy debug info", self.copyReportToClipboard))
+        self.debugBtn.pack(fill=tk.X, side=tk.BOTTOM, pady=5, padx=5)
 
         bottomFrame = tk.Frame(self.root)
         bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
