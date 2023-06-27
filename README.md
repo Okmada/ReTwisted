@@ -4,8 +4,6 @@ I am not playing this game, so I won't be contributing actively (big bugs might 
 
 Contributions are appreciated.
 
-Supports Microsoft Roblox and Roblox Player.
-
 [Discord server](https://discord.gg/yr7FsfGUXh) for suggestions and support
 
 ## Installation
@@ -16,11 +14,13 @@ Supports Microsoft Roblox and Roblox Player.
 
 ## Running
 
-Make sure you have the light theme in Roblox.
+- Make sure you have the light theme in Roblox.
 
-To have Roblox registered in the app, first start Roblox and then start the app.
+- Supports Microsoft Roblox and Roblox Player.
 
-Before starting the rolling, make sure you are on the title screen of Twisted (the screen where you have the big green button).
+- To have Roblox registered in the app, first start Roblox and then start the app.
+
+- Before starting the rolling, make sure you are on the title screen of Twisted (the screen where you have the big green button).
 
 ### How to get Discord webhook URL
 
