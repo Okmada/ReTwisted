@@ -213,6 +213,9 @@ class GAME(threading.Thread):
         self.copyScreenshotBtn = tk.Button(info_frame_bottom, text="Copy screenshot", 
                                            command=lambda: GUI.coppiedButton(self.copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
         self.copyScreenshotBtn.pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
+
+    def getScaleFactor(self):
+        return windll.user32.GetDpiForWindow(self.win) / 96.0
         
     def copyScreenshot(self):
         image = self.getscr(True)
@@ -290,6 +293,9 @@ class GAME(threading.Thread):
         left, top, right, bot = win32gui.GetWindowRect(self.win)
         w, h = right - left, bot - top
 
+        scaleFactor = self.getScaleFactor()
+        w, h = int(w * scaleFactor), int(h * scaleFactor)
+
         while True:
             try:
                 hwndDC = win32gui.GetWindowDC(DESKTOP)
@@ -362,9 +368,9 @@ class GAME(threading.Thread):
         sleep(.5)
 
         servers = self.findMultiplePos(JOIN_BTN[1], self.getscr())
-        pos = servers[min(1, n)]
+        (x, y) = servers[min(1, n)]
 
-        self.IHandler.qClick(self.win, pos[0], pos[1])
+        self.IHandler.qClick(self.win, x, y)
 
     def quitGame(self):
         self.IHandler.qPressKey(self.win, "esc")
