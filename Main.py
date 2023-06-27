@@ -214,8 +214,6 @@ class GAME(threading.Thread):
                                            command=lambda: GUI.coppiedButton(self.copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
         self.copyScreenshotBtn.pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
 
-    def getScaleFactor(self):
-        return windll.user32.GetDpiForWindow(self.win) / 96.0
         
     def copyScreenshot(self):
         image = self.getscr(True)
@@ -293,7 +291,7 @@ class GAME(threading.Thread):
         left, top, right, bot = win32gui.GetWindowRect(self.win)
         w, h = right - left, bot - top
 
-        scaleFactor = self.getScaleFactor()
+        scaleFactor = windll.user32.GetDpiForWindow(self.win) / 96.0
         w, h = int(w * scaleFactor), int(h * scaleFactor)
 
         while True:
@@ -324,7 +322,7 @@ class GAME(threading.Thread):
         img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
         img = img[:,:,:3]
 
-        img = cv2.resize(img, (W, H))
+        img = cv2.resize(img, (W, H), interpolation=cv2.INTER_LANCZOS4)
 
         return img.astype(dtype=np.uint8)
     
