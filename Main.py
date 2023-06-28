@@ -374,7 +374,7 @@ class Game(threading.Thread):
 
         sleep(.5)
 
-        servers = self.findMultiplePos(JOIN_BTN[1], self.getscr())
+        servers = self.findPos(JOIN_BTN[1], self.getscr(), 0.005)
         (x, y) = servers[min(1, n)]
 
         self.IHandler.qClick(self.win, x, y)
@@ -483,21 +483,19 @@ class Game(threading.Thread):
             self.restartGame()
 
     @staticmethod
-    def findPos(template, image):
+    def findPos(template, image, threshold=None):
         res = cv2.matchTemplate(image, template, cv2.TM_SQDIFF_NORMED)
-        error, _, loc, _ = cv2.minMaxLoc(res)
-        x, y = loc
-
         h, w = template.shape[:2]
-        return error, (x + w // 2, y + h // 2)
 
-    @staticmethod
-    def findMultiplePos(template, image, threshold=.9):
-        res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-        loc = np.where(res >= threshold)
+        if not threshold:
+            lerror, herror, lpos, hpos = cv2.minMaxLoc(res)
 
-        h, w = template.shape[:2]
-        return [(pos[0] + w // 2, pos[1] + h // 2) for pos in zip(*loc[::-1])]
+            x, y = lpos
+            return lerror, (x + w // 2, y + h // 2)
+        else:
+            loc = np.where(res <= threshold)
+
+            return [(pos[0] + w // 2, pos[1] + h // 2) for pos in zip(*loc[::-1])]
 
 
 class DiscordWebHook:
