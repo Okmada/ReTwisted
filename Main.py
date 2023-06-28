@@ -79,13 +79,14 @@ class InputHandler(threading.Thread):
         InputHandler.focuswindow(win)
 
         mx, my = win32gui.GetWindowRect(win)[:2]
+        fx, fy = mx + x, my + y
 
         match win32gui.GetClassName(win):
             case "WINDOWSCLIENT":
                 InputHandler.focuswindow(DESKTOP)
-                pydirectinput.doubleClick(mx + x, my + y)
+                pydirectinput.doubleClick(fx, fy)
             case "ApplicationFrameWindow":
-                pydirectinput.leftClick(mx + x, my + y)
+                pydirectinput.leftClick(fx, fy)
 
     def qClick(self, win, x, y):
         func = lambda: self.click(win, x, y)
