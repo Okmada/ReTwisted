@@ -18,6 +18,7 @@ import json
 import sys
 import os
 
+
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -25,6 +26,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 VERSION = "1.2"
 
@@ -38,7 +40,7 @@ JOIN_BTN = "Join button", cv2.imread(resource_path(FOLDER + "join-button.png"))
 
 PLAY = "Play", cv2.imread(resource_path(FOLDER + "play.png"))
 MENU = "Menu", cv2.imread(resource_path(FOLDER + "menu-icon.png"))
-WEATHER = "WEather", cv2.imread(resource_path(FOLDER + "weather-icon.png"))
+WEATHER = "Weather", cv2.imread(resource_path(FOLDER + "weather-icon.png"))
 
 STATS = "Stats", cv2.imread(resource_path(FOLDER + "stats.png"))
 STATS_MASK = "Stats mask", cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY)
@@ -49,7 +51,7 @@ TWISTED = "Twisted", cv2.imread(resource_path(FOLDER + "twisted.png"))
 DESKTOP = win32gui.GetDesktopWindow()
 
 
-class IHANDLER(threading.Thread):
+class InputHandler(threading.Thread):
     def __init__(self, pausedE):
         super().__init__()
         self.daemon = True
@@ -74,13 +76,13 @@ class IHANDLER(threading.Thread):
 
     @staticmethod
     def click(win, x, y):
-        IHANDLER.focuswindow(win)
+        InputHandler.focuswindow(win)
 
         mx, my = win32gui.GetWindowRect(win)[:2]
 
         match win32gui.GetClassName(win):
             case "WINDOWSCLIENT":
-                IHANDLER.focuswindow(DESKTOP)
+                InputHandler.focuswindow(DESKTOP)
                 pydirectinput.doubleClick(mx + x, my + y)
             case "ApplicationFrameWindow":
                 pydirectinput.leftClick(mx + x, my + y)
@@ -94,7 +96,7 @@ class IHANDLER(threading.Thread):
 
     @staticmethod
     def pressKey(win, key, time=.25):
-        IHANDLER.focuswindow(win)
+        InputHandler.focuswindow(win)
 
         pydirectinput.keyDown(key)
 
@@ -108,11 +110,10 @@ class IHANDLER(threading.Thread):
         self.event.set()
 
         return func
-    
+
     def awaitFunc(self, func):
         while func in self.eventsQueue:
             sleep(.1)
-
 
     def run(self):
         while True:
@@ -127,7 +128,8 @@ class IHANDLER(threading.Thread):
             else:
                 self.event.clear()
 
-class GAME(threading.Thread):
+
+class Game(threading.Thread):
     CLASSNAMES = {
         "WINDOWSCLIENT": "Roblox Player",
         "ApplicationFrameWindow": "Microsoft Roblox"
@@ -188,33 +190,36 @@ class GAME(threading.Thread):
         info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
 
         inte = tk.StringVar(value=(self.server + 1))
+
         def validate():
             num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
             inte.set(num)
             self.setServer(num)
             return True
+
         inte.trace_add("write", lambda *e: validate())
 
         # tk.Label(info_frame_bottom, text="Server settings") \
         #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
-        
+
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)
         tk.Label(server_frame, text="Server:") \
             .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
         tk.Entry(server_frame, textvariable=inte) \
             .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
-        
-        tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10), anchor=tk.W) \
-            .pack(fill=tk.X, side=tk.TOP)
-        tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10), anchor=tk.W) \
-            .pack(fill=tk.X, side=tk.TOP)
-        
-        self.copyScreenshotBtn = tk.Button(info_frame_bottom, text="Copy screenshot", 
-                                           command=lambda: GUI.coppiedButton(self.copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
-        self.copyScreenshotBtn.pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
 
-        
+        tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10),
+                 anchor=tk.W) \
+            .pack(fill=tk.X, side=tk.TOP)
+        tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10),
+                 anchor=tk.W) \
+            .pack(fill=tk.X, side=tk.TOP)
+
+        copyScreenshotBtn = tk.Button(info_frame_bottom, text="Copy screenshot",
+                                      command=lambda: Gui.coppiedButton(copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
+        copyScreenshotBtn.pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
+
     def copyScreenshot(self):
         image = self.getscr(True)
 
@@ -232,7 +237,8 @@ class GAME(threading.Thread):
                     return False
                 win32gui.PostMessage(win, win32con.WM_CLOSE, 0, 0)
 
-                for root, dirs, files in os.walk(os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
+                for root, dirs, files in os.walk(
+                        os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
                     if (file := 'Roblox Player.lnk') in files:
                         path = os.path.join(root, file)
                         break
@@ -240,13 +246,15 @@ class GAME(threading.Thread):
             case "ApplicationFrameWindow":
                 if win32gui.IsWindow(self.win):
                     return False
-                
-                robloxFamilyName = os.popen('powershell Get-AppxPackage -Name "ROBLOXCORPORATION.ROBLOX" | findstr /c:"PackageFamilyName"').read().split(":")[1].strip()
-                path = f"shell:appsFolder\{robloxFamilyName}!App"
-                
+
+                robloxFamilyName = os.popen(
+                    'powershell Get-AppxPackage -Name "ROBLOXCORPORATION.ROBLOX" | findstr /c:"PackageFamilyName"').read().split(
+                    ":")[1].strip()
+                path = f"shell:appsFolder\\{robloxFamilyName}!App"
+
             case _:
                 return None
-                            
+
         os.startfile(path)
 
         while (newWin := win32gui.FindWindow(self.name, "Roblox")) in [self.win, 0]:
@@ -297,7 +305,7 @@ class GAME(threading.Thread):
         while True:
             try:
                 hwndDC = win32gui.GetWindowDC(DESKTOP)
-                mfcDC  = win32ui.CreateDCFromHandle(hwndDC)
+                mfcDC = win32ui.CreateDCFromHandle(hwndDC)
                 saveDC = mfcDC.CreateCompatibleDC()
 
                 saveBitMap = win32ui.CreateBitmap()
@@ -320,28 +328,28 @@ class GAME(threading.Thread):
 
         img = np.frombuffer(bmpstr, dtype=np.uint8)
         img.shape = (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4)
-        img = img[:,:,:3]
+        img = img[:, :, :3]
 
         img = cv2.resize(img, (W, H), interpolation=cv2.INTER_LANCZOS4)
 
         return img.astype(dtype=np.uint8)
-    
+
     def findCoords(self, image, interval=.25, threshold=.1):
         ox, oy = None, None
         while True:
             error, (x, y) = self.findPos(image[1], self.getscr())
 
             self.status = f"img {image[0]}, err {error}, coords {(x, y)}"
-            
+
             if error <= threshold:
                 if ox == x and oy == y:
                     return x, y
                 ox, oy = x, y
             else:
                 ox, oy = None, None
-                        
+
             sleep(interval)
-    
+
     def findAndClick(self, images, threshold=.1):
         if type(images) is not list:
             images = [images]
@@ -350,7 +358,7 @@ class GAME(threading.Thread):
             x, y = self.findCoords(image, threshold=threshold)
 
             self.IHandler.qClick(self.win, x, y)
-    
+
     def openServers(self):
         self.findAndClick([FRIEND, JOIN_FRIEND], threshold=.075)
 
@@ -396,7 +404,7 @@ class GAME(threading.Thread):
             lerror, herror, loc, _ = cv2.minMaxLoc(res)
             success = lerror <= .1
             x, y = loc
-            
+
             if not success:
                 ox, oy = None, None
                 continue
@@ -410,8 +418,8 @@ class GAME(threading.Thread):
 
             clamp = lambda n, minn, maxn: max(min(maxn, n), minn)
 
-            table = scr[clamp(y, 0, ih - h):clamp(y + h, h, ih), 
-                        clamp(x, 0, iw - w):clamp(x + w, w, iw)]
+            table = scr[clamp(y, 0, ih - h):clamp(y + h, h, ih),
+                    clamp(x, 0, iw - w):clamp(x + w, w, iw)]
 
             stats = []
 
@@ -426,13 +434,12 @@ class GAME(threading.Thread):
                 cropped = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 
                 x, y, w, h = cv2.boundingRect(cv2.findNonZero(cropped))
-                cropped = cropped[y:y+h, x:x+w]
+                cropped = cropped[y:y + h, x:x + w]
 
                 cropped = cv2.threshold(cropped, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
-                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 3)[::-1], interpolation = cv2.INTER_LINEAR)
+                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 3)[::-1], interpolation=cv2.INTER_LINEAR)
 
-                
                 value = pytesseract.image_to_string(cropped, config='digits').strip()
 
                 try:
@@ -441,7 +448,7 @@ class GAME(threading.Thread):
                     value = float(value[::-1].replace(".", "", max(0, value.count(".") - 1))[::-1])
 
                 stats.append(value)
-            
+
             ELEMENTS = ["TEMPERATURE", "DEW POINT", "LAPSE RATES", "HUMIDITY", "CAPE"]
 
             if len(stats) != 2 * len(ELEMENTS):
@@ -481,25 +488,26 @@ class GAME(threading.Thread):
         x, y = loc
 
         h, w = template.shape[:2]
-        return error, (x + w//2, y + h//2)
-    
+        return error, (x + w // 2, y + h // 2)
+
     @staticmethod
     def findMultiplePos(template, image, threshold=.9):
         res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
         loc = np.where(res >= threshold)
 
         h, w = template.shape[:2]
-        return [(pos[0] + w//2, pos[1] + h//2) for pos in zip(*loc[::-1])]
+        return [(pos[0] + w // 2, pos[1] + h // 2) for pos in zip(*loc[::-1])]
+
 
 class DiscordWebHook:
     def send(config, stats):
         if not (url := config(["webhook", "url"])):
             return
-        
+
         post(url, json={
             "username": "Re:Twisted bot",
             # "avatar_url": "",
-            "content" : f"<@{config(['webhook', 'ping id'])}>" if config(['webhook', 'ping id']) else "",
+            "content": f"<@{config(['webhook', 'ping id'])}>" if config(['webhook', 'ping id']) else "",
             "embeds": [{
                 "title": "Winds are picking up on speed :cloud_tornado:",
                 "color": "333",
@@ -512,7 +520,8 @@ class DiscordWebHook:
             }]
         })
 
-class GUI:
+
+class Gui:
     class PausePopUP:
         def __init__(self, parent, pausedE):
             self.root = tk.Toplevel(parent, background="red")
@@ -531,7 +540,7 @@ class GUI:
 
             redFrame = tk.Frame(self.root)
             redFrame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
-            
+
             frame = tk.Frame(redFrame)
             frame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
 
@@ -545,7 +554,7 @@ class GUI:
                 .pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
             tk.Button(buttons, text="No", font=(None, 14), command=self.close) \
                 .pack(side=tk.RIGHT, padx=10, fill=tk.X, expand=True)
-            
+
         def continueAndClose(self):
             self.pausedE.unpause()
             self.close()
@@ -563,14 +572,14 @@ class GUI:
         self.pausedE.pause = self.pause
         self.pausedE.unpause = self.unpause
 
-        self.config = CONFIG(self.root, self.copyReportToClipboard)
+        self.config = Config(self.root, self.copyReportToClipboard)
         self.popup = self.PausePopUP(self.root, self.pausedE)
-        self.ihandler = IHANDLER(self.pausedE)
+        self.ihandler = InputHandler(self.pausedE)
 
         self.setup()
 
         self.games = []
-        for className in GAME.CLASSNAMES.keys():
+        for className in Game.CLASSNAMES.keys():
             if (win := win32gui.FindWindow(className, "Roblox")) != 0:
                 self.newGame(win)
 
@@ -579,13 +588,13 @@ class GUI:
         self.root.mainloop()
 
     def newGame(self, win):
-        self.games.append(GAME(
-            win, 
-            self.right_side_SF, 
-            self.ihandler, 
-            self.config.getSetting, 
-            self.handleData, 
-            self.pausedE, 
+        self.games.append(Game(
+            win,
+            self.right_side_SF,
+            self.ihandler,
+            self.config.getSetting,
+            self.handleData,
+            self.pausedE,
             server=(len(self.games) + 1)
         ))
 
@@ -593,14 +602,14 @@ class GUI:
         cape = stats["FORECAST"]["CAPE"]
 
         if cape >= self.config.getSetting(["cape", "highest"]) or \
-           cape <= self.config.getSetting(["cape", "lowest"]):
+                cape <= self.config.getSetting(["cape", "lowest"]):
             self.popup.open()
             self.pause()
 
             DiscordWebHook.send(self.config.getSetting, stats)
 
         self.updateHisotry()
-    
+
     def updateHisotry(self):
         history = [stat for game in self.games for stat in game.history]
         timeHistory = [time for time, cape in history]
@@ -626,8 +635,8 @@ class GUI:
         self.root.defaultFont = font.nametofont("TkDefaultFont")
         self.root.defaultFont.configure(family="Comic Sans MS", size=18)
 
-        self.lbg = "#ccc"
-        self.left_side = tk.Frame(self.root, width=350, background=self.lbg)
+        lbg = "#ccc"
+        self.left_side = tk.Frame(self.root, width=350, background=lbg)
         self.left_side.pack(side=tk.LEFT, fill=tk.BOTH)
         self.left_side.pack_propagate(False)
 
@@ -635,29 +644,28 @@ class GUI:
         self.right_side.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.right_side.pack_propagate(False)
 
-
-        tk.Label(self.left_side, text="Re:Twisted", font=(None, 20), background=self.lbg) \
+        tk.Label(self.left_side, text="Re:Twisted", font=(None, 20), background=lbg) \
             .pack(side=tk.TOP)
-        
-        tk.Label(self.left_side, text=f"version {VERSION}", font=(None, 12), background=self.lbg) \
+
+        tk.Label(self.left_side, text=f"version {VERSION}", font=(None, 12), background=lbg) \
             .pack(side=tk.TOP, pady=(0, 15))
-        
-        self.status = tk.Label(self.left_side, text="Status - Paused", background=self.lbg)
+
+        self.status = tk.Label(self.left_side, text="Status - Paused", background=lbg)
         self.status.pack(side=tk.TOP)
 
-        server_buttons = tk.Frame(self.left_side, background=self.lbg)
-        server_buttons.pack( fill=tk.X, side=tk.TOP)
+        server_buttons = tk.Frame(self.left_side, background=lbg)
+        server_buttons.pack(fill=tk.X, side=tk.TOP)
         tk.Button(server_buttons, text="Start", command=self.unpause) \
             .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
         tk.Button(server_buttons, text="Pause", command=self.pause) \
             .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
 
-        tk.Button(self.left_side, text="Settings", command= self.config.open) \
+        tk.Button(self.left_side, text="Settings", command=self.config.open) \
             .pack(fill=tk.X, side=tk.TOP, pady=5, padx=5)
 
-        tk.Label(self.left_side, text="Records", background=self.lbg) \
+        tk.Label(self.left_side, text="Records", background=lbg) \
             .pack(side=tk.TOP)
-        
+
         left_sf_canvas = tk.Canvas(self.left_side)
         self.left_side_SF = tk.Frame(left_sf_canvas)
 
@@ -666,23 +674,24 @@ class GUI:
         left_sf_canvas.configure(yscrollcommand=scrollbar.set)
 
         left_sf_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5, padx=(5, 0))
-        left_sf_canvas.create_window((0,0), window=self.left_side_SF, anchor=tk.NW)
+        left_sf_canvas.create_window((0, 0), window=self.left_side_SF, anchor=tk.NW)
 
         self.left_side_SF.bind("<Configure>", \
-            lambda event, canvas=left_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
-        
-        self.recordsUpdateCallbacks = []        
-        for recordType, command in [["Highest cape", lambda timeHistory, capeHistory: f"{max(capeHistory)} J/kg" if capeHistory else None], 
-                                    ["Lowest cape", lambda timeHistory, capeHistory: f"{min(capeHistory)} J/kg" if capeHistory else None], 
-                                    ["Average cape", lambda timeHistory, capeHistory: f"{round(sum(capeHistory)/len(capeHistory))} J/kg" if capeHistory else None], 
-                                    ["Avg reroll time", lambda timeHistory, capeHistory: f"{round(sum(timeHistory)/len(timeHistory), 1)} sec" if timeHistory else None],
-                                    ["Servers rolled", lambda timeHistory, capeHistory: len(capeHistory) if capeHistory else None]
-                                    ]:
+                               lambda event, canvas=left_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        self.recordsUpdateCallbacks = []
+        for recordType, command in [
+            ["Highest cape", lambda timeHistory, capeHistory: f"{max(capeHistory)} J/kg" if capeHistory else None],
+            ["Lowest cape", lambda timeHistory, capeHistory: f"{min(capeHistory)} J/kg" if capeHistory else None],
+            ["Average cape", lambda timeHistory, capeHistory: f"{round(sum(capeHistory) / len(capeHistory))} J/kg" if capeHistory else None],
+            ["Avg reroll time", lambda timeHistory, capeHistory: f"{round(sum(timeHistory) / len(timeHistory), 1)} sec" if timeHistory else None],
+            ["Servers rolled", lambda timeHistory, capeHistory: len(capeHistory) if capeHistory else None]
+            ]:
             label = tk.Label(self.left_side_SF)
             label.pack(anchor=tk.W)
 
             self.recordsUpdateCallbacks.append([recordType, command, label])
-   
+
         right_sf_canvas = tk.Canvas(self.right_side, width=500)
         self.right_side_SF = tk.Frame(right_sf_canvas)
 
@@ -691,11 +700,11 @@ class GUI:
         right_sf_canvas.configure(yscrollcommand=scrollbar.set)
 
         right_sf_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        right_sf_canvas.create_window((0,0), window=self.right_side_SF, anchor=tk.NW)
+        right_sf_canvas.create_window((0, 0), window=self.right_side_SF, anchor=tk.NW)
 
         self.right_side_SF.bind("<Configure>", \
-            lambda event, canvas=right_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
-        
+                                lambda event, canvas=right_sf_canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+
     def copyReportToClipboard(self):
         out = []
         out.append("# System Stats")
@@ -706,7 +715,7 @@ class GUI:
         out.append(f"[Paused][{not self.pausedE.is_set()}]")
         out.append(f"[Discord Webhook URL][{bool(self.config.getSetting(['webhook', 'url']))}]")
         out.append(f"[Discord Ping ID][{self.config.getSetting(['webhook', 'ping id'])}]")
-        out.append(f"[Tesseract][{TESSERACT.testTesseract()}]")
+        out.append(f"[Tesseract][{Tesseract.testTesseract()}]")
 
         out.append("# Input handler")
         out.append(f"[Queue size][{len(self.ihandler.eventsQueue)}]")
@@ -729,27 +738,28 @@ class GUI:
 
     @staticmethod
     def coppiedButton(button, text, func):
-        button.config(text="Coppied")
+        button.config(text="Copied")
         func()
         button.after(500, lambda: button.config(text=text))
 
-class CONFIG:
+
+class Config:
     TEMPLATE = {
         "webhook": {
-            "url": [str, "", \
-                    "Webhook url where bot will send message on succesful find"],
-            "ping id": [str, "", \
+            "url": [str, "",
+                    "Webhook url where bot will send message on successful find"],
+            "ping id": [str, "",
                         "User / Role which will be pinged in message"]
         },
         "cape": {
-            "highest": [int, 7000, \
+            "highest": [int, 7000,
                         "Will stop rolling, if it's over this number"],
-            "lowest": [int, 300, \
-                        "Will stop rolling, if it's under this number"]
+            "lowest": [int, 300,
+                       "Will stop rolling, if it's under this number"]
         },
         "paths": {
             "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", \
-                        "Path to tesseract executable for OCR to work"]
+                          "Path to Tesseract executable for OCR to work"]
         }
     }
 
@@ -766,7 +776,7 @@ class CONFIG:
         self.load()
         self.write()
 
-        self.tesseract = TESSERACT(self.setSetting, self.getSetting, parent)
+        self.tesseract = Tesseract(self.setSetting, self.getSetting, parent)
 
         self.setup()
 
@@ -777,19 +787,19 @@ class CONFIG:
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.close(False))
 
-        self.debugBtn = tk.Button(self.root, text="Copy debug info", 
-                                  command=lambda: GUI.coppiedButton(self.debugBtn, "Copy debug info", self.copyReportToClipboard))
-        self.debugBtn.pack(fill=tk.X, side=tk.BOTTOM, pady=5, padx=5)
+        debugBtn = tk.Button(self.root, text="Copy debug info",
+                             command=lambda: Gui.coppiedButton(debugBtn, "Copy debug info", self.copyReportToClipboard))
+        debugBtn.pack(fill=tk.X, side=tk.BOTTOM, pady=5, padx=5)
 
         bottomFrame = tk.Frame(self.root)
         bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 
         tk.Button(bottomFrame, text="Save", command=lambda: self.close(True)) \
             .pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5, pady=5)
-        
+
         tk.Button(bottomFrame, text="Close", command=lambda: self.close(False)) \
             .pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=5, pady=5)
-        
+
         canvas = tk.Canvas(self.root, width=500)
         frame = tk.Frame(canvas)
 
@@ -802,10 +812,10 @@ class CONFIG:
         canvas.configure(xscrollcommand=hscrollbar.set)
 
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        canvas.create_window((0,0), window=frame, anchor=tk.NW)
+        canvas.create_window((0, 0), window=frame, anchor=tk.NW)
 
         frame.bind("<Configure>", \
-            lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+                   lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
 
         self.configGUIGenerator(self.TEMPLATE, frame)
 
@@ -820,7 +830,7 @@ class CONFIG:
     def write(self):
         with open(self.CONFIG_FILE, "w") as file:
             json.dump(self.config, file)
-            file.close()        
+            file.close()
 
     def open(self):
         self.load()
@@ -854,8 +864,7 @@ class CONFIG:
             frame = tk.Frame(master)
             frame.pack(anchor=tk.W, padx=(max(0, (len(path) - 1) * 25), 0))
 
-            tk.Label(frame, text=last) \
-                .pack(anchor=tk.W)
+            tk.Label(frame, text=last).pack(anchor=tk.W)
         else:
             frame = master
 
@@ -874,7 +883,7 @@ class CONFIG:
 
                 tk.Entry(frame, textvariable=inpt, width=50) \
                     .pack(pady=(0, 15), side=tk.LEFT)
-                
+
     def validateAndSet(self, config, inpt):
         dataType = self.getInDict(self.TEMPLATE, config)[0]
         match dataType():
@@ -899,7 +908,7 @@ class CONFIG:
                 continue
             return None
         return tmp
-    
+
     @staticmethod
     def setInDict(config, path, value):
         tmp = config
@@ -909,7 +918,7 @@ class CONFIG:
                 continue
             return
         tmp[path[-1]] = value
-    
+
     @staticmethod
     def defaultIfInvalid(value, type, default):
         return value if isinstance(value, type) else default
@@ -918,13 +927,14 @@ class CONFIG:
     def fitDictToDict(template, config, path=[]):
         match template:
             case dict():
-                return { key: CONFIG.fitDictToDict(item, config, path=path + [key]) \
-                        for key, item in template.items() }
+                return {key: Config.fitDictToDict(item, config, path=path + [key]) \
+                        for key, item in template.items()}
             case list():
-                conf = CONFIG.getInDict(config, path)
-                return CONFIG.defaultIfInvalid(conf, template[0], template[1])
-            
-class TESSERACT:
+                conf = Config.getInDict(config, path)
+                return Config.defaultIfInvalid(conf, template[0], template[1])
+
+
+class Tesseract:
     def __init__(self, setSetting, getSetting, parent):
         self.setSetting = setSetting
         self.getSetting = getSetting
@@ -942,7 +952,7 @@ class TESSERACT:
         self.root.resizable(False, False)
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
-        
+
         frame = tk.Frame(self.root)
         frame.pack(padx=15, pady=15, fill=tk.BOTH, expand=True)
 
@@ -957,7 +967,7 @@ class TESSERACT:
             .pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         tk.Button(buttons, text="Close", font=(None, 14), command=self.close) \
             .pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
-        
+
         # PATH FRAME
         pathFrame = tk.Frame(frame)
         pathFrame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
@@ -967,26 +977,25 @@ class TESSERACT:
 
         pathE = tk.Entry(pathFrame, textvariable=self.pathVar)
         pathE.pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
-        
+
         # AUTOSEARCH FRAME
         autosearchFrame = tk.Frame(frame)
         autosearchFrame.pack(side=tk.BOTTOM, fill=tk.X)
         tk.Label(autosearchFrame, text="Auto-find", font=(None, 12)).pack(side=tk.TOP, fill=tk.X)
 
         autosearchVar = tk.StringVar(value="C:\\Program Files")
+
         def autosearchFun():
             for root, dirs, files in os.walk(autosearchVar.get()):
                 if (file := "tesseract.exe") in files:
                     self.pathVar.set(os.path.join(root, file))
                     return
 
-
         tk.Entry(autosearchFrame, textvariable=autosearchVar) \
             .pack(fill=tk.BOTH, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
-        
+
         tk.Button(autosearchFrame, text="Find", font=(None, 14), command=autosearchFun) \
             .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
-        
 
     def loadTesseract(self):
         pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
@@ -1014,5 +1023,6 @@ class TESSERACT:
         except:
             return False
 
+
 if __name__ == '__main__':
-    GUI()
+    Gui()
