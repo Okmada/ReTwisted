@@ -158,6 +158,7 @@ class Game(threading.Thread):
         self.history = []
 
         self.status = None
+        self.timeout = None
 
         self.setServer(server)
     
@@ -234,9 +235,12 @@ class Game(threading.Thread):
     def crashDetection(self):
         match self.name:
             case "WINDOWSCLIENT":
-                if (win := win32gui.FindWindow(None, "Roblox Crash")) == 0:
+                if (win := win32gui.FindWindow(None, "Roblox Crash")) != 0:
+                    win32gui.PostMessage(win, win32con.WM_CLOSE, 0, 0)
+                elif not win32gui.IsWindow(self.win):
+                    pass
+                else:
                     return False
-                win32gui.PostMessage(win, win32con.WM_CLOSE, 0, 0)
 
                 for root, dirs, files in os.walk(
                         os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
@@ -248,9 +252,7 @@ class Game(threading.Thread):
                 if win32gui.IsWindow(self.win):
                     return False
 
-                robloxFamilyName = os.popen(
-                    'powershell Get-AppxPackage -Name "ROBLOXCORPORATION.ROBLOX" | findstr /c:"PackageFamilyName"').read().split(
-                    ":")[1].strip()
+                robloxFamilyName = os.popen('powershell Get-AppxPackage -Name "ROBLOXCORPORATION.ROBLOX" | findstr /c:"PackageFamilyName"').read().split(":")[1].strip()
                 path = f"shell:appsFolder\\{robloxFamilyName}!App"
 
             case _:
@@ -263,7 +265,15 @@ class Game(threading.Thread):
         self.win = newWin
 
         self.findAndClick(TWISTED, threshold=0.005)
-        self.run()
+        raise Exception()
+
+    def timeOutDetection(self):
+        if not self.timeout:
+            self.timeout = time.time()
+
+        elif self.timeout + self.getCfg(["timeout"]) <= time.time():
+            self.timeout = None
+            self.closeRoblox()
 
     def closeRoblox(self):
         win32gui.PostMessage(self.win, win32con.WM_CLOSE, 0, 0)
@@ -293,8 +303,13 @@ class Game(threading.Thread):
 
     def getscr(self, force=False):
         if not force:
-            self.pausedE.wait()
-            self.lPaused.wait()
+            if not self.lPaused.is_set() or not self.pausedE.is_set():
+                self.timeout = None
+
+                self.pausedE.wait()
+                self.lPaused.wait()
+
+            self.timeOutDetection()
 
         self.crashDetection()
 
@@ -461,26 +476,31 @@ class Game(threading.Thread):
     def run(self):
         timebeg = time.time()
         while True:
-            self.openServers()
-            self.joinServer()
+            try:
+                self.openServers()
+                self.joinServer()
 
-            self.findAndClick([PLAY, MENU, WEATHER])
+                self.findAndClick([PLAY, MENU, WEATHER])
 
-            stats = self.getInfo()
-            cape = stats["FORECAST"]["CAPE"]
+                stats = self.getInfo()
+                cape = stats["FORECAST"]["CAPE"]
 
-            timeend = time.time()
-            self.history.append([timeend - timebeg, cape])
+                timeend = time.time()
+                self.history.append([timeend - timebeg, cape])
 
-            self.historyText.configure(state=tk.NORMAL)
-            self.historyText.insert("1.0", f"{time.strftime('%H:%M:%S', time.localtime(timeend))} - {cape} J/kg\n")
-            self.historyText.configure(state=tk.DISABLED)
+                self.historyText.configure(state=tk.NORMAL)
+                self.historyText.insert("1.0", f"{time.strftime('%H:%M:%S', time.localtime(timeend))} - {cape} J/kg\n")
+                self.historyText.configure(state=tk.DISABLED)
 
-            self.dataCallback(stats)
+                self.dataCallback(stats)
 
-            timebeg = time.time()
+                timebeg = time.time()
 
-            self.quitGame()
+                self.quitGame()
+            except:
+                timebeg = time.time()
+            finally:
+                self.timeout = None
 
     @staticmethod
     def findPos(template, image, threshold=None):
@@ -750,6 +770,7 @@ class Config:
             "ping id": [str, "",
                         "User / Role which will be pinged in message"]
         },
+        "timeout": [int, 120, "Maximum amount of time that the server can take to reroll"],
         "cape": {
             "highest": [int, 7000,
                         "Will stop rolling, if it's over this number"],
