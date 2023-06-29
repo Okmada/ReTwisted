@@ -159,7 +159,7 @@ class Game(threading.Thread):
 
         self.status = None
 
-        self.setServer(server)
+        self.server = server
 
         self.frame = tk.Frame(parent, width=470, height=250, background="#aaa")
         self.frame.pack(padx=5, pady=5)
@@ -265,6 +265,9 @@ class Game(threading.Thread):
         self.findAndClick(TWISTED, threshold=0.005)
         self.run()
 
+    def closeRoblox(self):
+        win32gui.PostMessage(self.win, win32con.WM_CLOSE, 0, 0)
+
     def getName(self, masked=True):
         if self.name in self.CLASSNAMES.keys() and masked:
             return self.CLASSNAMES[self.name]
@@ -367,15 +370,15 @@ class Game(threading.Thread):
             self.status = f"Waiting for join button, err {error}"
             sleep(.25)
 
-    def joinServer(self, n):
-        for _ in range(max(0, int((n - 1) * self.MULTIPLIERS[self.name]))):
+    def joinServer(self):
+        for _ in range(max(0, int((self.server - 1) * self.MULTIPLIERS[self.name]))):
             self.IHandler.qClick(self.win, W - 20, H - 20)
         self.IHandler.awaitFunc(self.IHandler.qClick(self.win, W - 20, H - 20))
 
         sleep(.5)
 
         servers = self.findPos(JOIN_BTN[1], self.getscr(), 0.005)
-        (x, y) = servers[min(1, n)]
+        (x, y) = servers[min(1, self.server)]
 
         self.IHandler.qClick(self.win, x, y)
 
@@ -385,11 +388,6 @@ class Game(threading.Thread):
         self.IHandler.qPressKey(self.win, "l")
 
         self.IHandler.qPressKey(self.win, "enter")
-
-    def restartGame(self):
-        self.quitGame()
-        self.openServers()
-        self.joinServer(self.server)
 
     def getInfo(self):
         ox, oy = None, None
@@ -462,9 +460,10 @@ class Game(threading.Thread):
 
     def run(self):
         timebeg = time.time()
-        self.openServers()
-        self.joinServer(self.server)
         while True:
+            self.openServers()
+            self.joinServer()
+
             self.findAndClick([PLAY, MENU, WEATHER])
 
             stats = self.getInfo()
@@ -480,7 +479,8 @@ class Game(threading.Thread):
             self.dataCallback(stats)
 
             timebeg = time.time()
-            self.restartGame()
+
+            self.quitGame()
 
     @staticmethod
     def findPos(template, image, threshold=None):
