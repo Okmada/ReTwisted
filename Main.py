@@ -159,8 +159,8 @@ class Game(threading.Thread):
 
         self.status = None
 
-        self.server = server
-
+        self.setServer(server)
+    
         self.frame = tk.Frame(parent, width=470, height=250, background="#aaa")
         self.frame.pack(padx=5, pady=5)
         self.frame.pack_propagate(False)
