@@ -211,12 +211,8 @@ class Game(threading.Thread):
         tk.Entry(server_frame, textvariable=inte) \
             .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
 
-        tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected", font=(None, 10),
-                 anchor=tk.W) \
-            .pack(fill=tk.X, side=tk.TOP)
-        tk.Label(info_frame_bottom, state=tk.DISABLED, text="0 means, pause rolling for this client", font=(None, 10),
-                 anchor=tk.W) \
-            .pack(fill=tk.X, side=tk.TOP)
+        tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected\n0 means, pause rolling for this client", 
+                 font=(None, 10), anchor=tk.W, justify=tk.LEFT).pack(fill=tk.X, side=tk.TOP)
 
         copyScreenshotBtn = tk.Button(info_frame_bottom, text="Copy screenshot",
                                       command=lambda: Gui.coppiedButton(copyScreenshotBtn, "Copy screenshot", self.copyScreenshot))
@@ -268,10 +264,15 @@ class Game(threading.Thread):
         raise Exception()
 
     def timeOutDetection(self):
+        maxTimeout = self.getCfg(["timeout"])
+
+        if maxTimeout <= 0:
+            return
+
         if not self.timeout:
             self.timeout = time.time()
 
-        elif self.timeout + self.getCfg(["timeout"]) <= time.time():
+        elif self.timeout + maxTimeout <= time.time():
             self.timeout = None
             self.closeRoblox()
 
@@ -620,8 +621,8 @@ class Gui:
     def handleData(self, stats):
         cape = stats["FORECAST"]["CAPE"]
 
-        if cape >= self.config.getSetting(["cape", "highest"]) or \
-                cape <= self.config.getSetting(["cape", "lowest"]):
+        if cape >= (high := self.config.getSetting(["cape", "highest"])) and high != 0 or \
+           cape <= (low := self.config.getSetting(["cape", "lowest"])) and low != 0:
             self.popup.open()
             self.pause()
 
@@ -766,20 +767,19 @@ class Config:
     TEMPLATE = {
         "webhook": {
             "url": [str, "",
-                    "Webhook url where bot will send message on successful find"],
+                    "Webhook url where message will be sent on successful find.\nLeave empty for no message."],
             "ping id": [str, "",
-                        "User / Role which will be pinged in message"]
+                        "User / Role which will be pinged in message."]
         },
-        "timeout": [int, 120, "Maximum amount of time that the server can take to reroll"],
         "cape": {
             "highest": [int, 7000,
-                        "Will stop rolling, if it's over this number"],
+                        "Will stop rolling, if it's over this number.\nEntring 0 will disable this feature."],
             "lowest": [int, 300,
-                       "Will stop rolling, if it's under this number"]
+                       "Will stop rolling, if it's under this number.\nEntring 0 will disable this feature."]
         },
+        "timeout": [int, 120, "Maximum amount of time that the server can take to reroll.\nEntring 0 will disable timeout feature."],
         "paths": {
-            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", \
-                          "Path to Tesseract executable for OCR to work"]
+            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", "Path to Tesseract executable for OCR to work."]
         }
     }
 
@@ -898,11 +898,11 @@ class Config:
 
                 inpt.trace_add("write", lambda *e: self.validateAndSet(path, inpt))
 
-                tk.Label(frame, state=tk.DISABLED, text=template[2], font=(None, 10), anchor=tk.W) \
-                    .pack(fill=tk.X, side=tk.TOP)
+                tk.Label(frame, state=tk.DISABLED, text=template[2], font=(None, 10), anchor=tk.W, justify=tk.LEFT) \
+                    .pack(fill=tk.X, side=tk.TOP, padx=(3, 0))
 
                 tk.Entry(frame, textvariable=inpt, width=50) \
-                    .pack(pady=(0, 15), side=tk.LEFT)
+                    .pack(pady=(0, 15), side=tk.LEFT, padx=(3, 0))
 
     def validateAndSet(self, config, inpt):
         dataType = self.getInDict(self.TEMPLATE, config)[0]
@@ -955,6 +955,8 @@ class Config:
 
 
 class Tesseract:
+    TESERACT_CONFIG = ["paths", "tesseract"]
+    
     def __init__(self, setSetting, getSetting, parent):
         self.setSetting = setSetting
         self.getSetting = getSetting
@@ -993,7 +995,7 @@ class Tesseract:
         pathFrame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
         tk.Label(pathFrame, text="Path", font=(None, 12)).pack(side=tk.LEFT, pady=5)
 
-        self.pathVar = tk.StringVar(value=self.getSetting(["paths", "tesseract"]))
+        self.pathVar = tk.StringVar(value=self.getSetting(self.TESERACT_CONFIG))
 
         pathE = tk.Entry(pathFrame, textvariable=self.pathVar)
         pathE.pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
@@ -1018,13 +1020,13 @@ class Tesseract:
             .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
 
     def loadTesseract(self):
-        pytesseract.pytesseract.tesseract_cmd = self.getSetting(["paths", "tesseract"])
+        pytesseract.pytesseract.tesseract_cmd = self.getSetting(self.TESERACT_CONFIG)
 
         if not self.testTesseract():
             self.open()
 
     def open(self):
-        self.pathVar.set(self.getSetting(["paths", "tesseract"]))
+        self.pathVar.set(self.getSetting(self.TESERACT_CONFIG))
         self.root.deiconify()
 
     def close(self, save=False):
@@ -1032,7 +1034,7 @@ class Tesseract:
 
         path = self.pathVar.get()
         if save and path:
-            self.setSetting(["paths", "tesseract"], path)
+            self.setSetting(self.TESERACT_CONFIG, path)
             self.loadTesseract()
 
     @staticmethod
