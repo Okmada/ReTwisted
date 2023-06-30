@@ -453,7 +453,9 @@ class Game(threading.Thread):
 
                 cropped = cv2.threshold(cropped, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
-                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 3)[::-1], interpolation=cv2.INTER_LINEAR)
+                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 4)[::-1], interpolation=cv2.INTER_LANCZOS4)  
+
+                cropped = cv2.blur(cropped, (5, 5))
 
                 value = pytesseract.image_to_string(cropped, config='digits').strip()
 
