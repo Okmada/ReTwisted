@@ -155,6 +155,7 @@ class Game(threading.Thread):
         self.lPaused = threading.Event()
         self.getCfg = getCfg
         self.pausedE = pausedE
+        self.sfpopup = Gui.ScaleFactorPopup(parent, self.getName())
 
         self.dataCallback = dataCallback
         self.historyTextCallback = None
@@ -320,11 +321,14 @@ class Game(threading.Thread):
 
         self.resize()
 
-        left, top, right, bot = win32gui.GetWindowRect(self.win)
-        w, h = right - left, bot - top
+        while (scaleFactor := windll.user32.GetDpiForWindow(self.win) / 96.0) != 1:
+            if not self.sfpopup.root.winfo_viewable():
+                self.sfpopup.root.deiconify()
+            sleep(.1)
+        self.sfpopup.root.withdraw()
 
-        scaleFactor = windll.user32.GetDpiForWindow(self.win) / 96.0
-        w, h = int(w * scaleFactor), int(h * scaleFactor)
+        left, top, right, bot = win32gui.GetWindowRect(self.win)
+        w, h = round((right - left) * scaleFactor), round((bot - top) * scaleFactor)
 
         while True:
             try:
@@ -590,6 +594,39 @@ class Gui:
 
         def close(self):
             self.root.withdraw()
+
+    class ScaleFactorPopup:
+        def __init__(self, parent, name):
+            self.root = tk.Toplevel(parent)
+            self.root.withdraw()
+
+            self.name = name
+
+            self.setup()
+
+        def open(self):
+            self.root.deiconify()
+
+        def setup(self):
+            self.root.title("Re:Twisted - scale factor setup")
+            self.root.geometry("450x170")
+            self.root.resizable(False, False)
+
+            self.root.protocol("WM_DELETE_WINDOW", sys.exit)
+
+            frame = tk.Frame(self.root)
+            frame.pack(padx=15, pady=15, fill=tk.BOTH, expand=True)
+
+            tk.Label(frame, text="Wrong scale factor detected", font=(None, 16)).pack()
+            tk.Label(frame, text=f"Detected an unsupported scale factor on the screen with {self.name}. Please change the scale to 100% in the settings to proceed.", font=(None, 12), wraplength=450).pack()
+            
+            buttons = tk.Frame(frame)
+            buttons.pack(side=tk.BOTTOM, fill=tk.X)
+
+            tk.Button(buttons, text="Settings", font=(None, 14), command=lambda: os.startfile("ms-settings:display")) \
+                .pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+            tk.Button(buttons, text="Exit", font=(None, 14), command=sys.exit) \
+                .pack(side=tk.RIGHT, padx=5, fill=tk.X, expand=True)
 
     def __init__(self):
         self.root = tk.Tk()
