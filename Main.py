@@ -122,10 +122,14 @@ class InputHandler(threading.Thread):
             self.pausedE.wait()
 
             if self.eventsQueue:
-                self.eventsQueue[0]()
-                del self.eventsQueue[0]
+                try:
+                    self.eventsQueue[0]()
+                except:
+                    pass
+                finally:
+                    del self.eventsQueue[0]
 
-                self.counter += 1
+                    self.counter += 1
             else:
                 self.event.clear()
 
