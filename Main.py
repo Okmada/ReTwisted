@@ -28,27 +28,55 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-VERSION = "1.2"
+VERSION = "1.3"
 
 W, H = 975, 850
 FOLDER = "assets/"
 
-FRIEND = "Friend", cv2.imread(resource_path(FOLDER + "friend.png"))
-JOIN_FRIEND = "Join friend", cv2.imread(resource_path(FOLDER + "join-friend.png"))
-
-JOIN_BTN = "Join button", cv2.imread(resource_path(FOLDER + "join-button.png"))
-
-PLAY = "Play", cv2.imread(resource_path(FOLDER + "play.png"))
-MENU = "Menu", cv2.imread(resource_path(FOLDER + "menu-icon.png"))
-WEATHER = "Weather", cv2.imread(resource_path(FOLDER + "weather-icon.png"))
-
-STATS = "Stats", cv2.imread(resource_path(FOLDER + "stats.png"))
-STATS_MASK = "Stats mask", cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY)
-STATS_DATA_MASK = "Stats data mask", cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-data-mask.png")), cv2.COLOR_BGR2GRAY)
-
-TWISTED = "Twisted", cv2.imread(resource_path(FOLDER + "twisted.png"))
-
 DESKTOP = win32gui.GetDesktopWindow()
+
+class Images:
+    _Images = {
+        "twisted": {
+            "light": cv2.imread(resource_path(FOLDER + "twisted.png")),
+            "dark": cv2.imread(resource_path(FOLDER + "twisted-dark.png"))
+        },
+        "friend": {
+            "light": cv2.imread(resource_path(FOLDER + "friend.png")),
+            "dark": cv2.imread(resource_path(FOLDER + "friend-dark.png"))
+        },
+        "join friend": {
+            "light": cv2.imread(resource_path(FOLDER + "join-friend.png")),
+            "dark": cv2.imread(resource_path(FOLDER + "join-friend-dark.png"))
+        },
+        "join btn": {
+            "light": cv2.imread(resource_path(FOLDER + "join-button.png")),
+            "dark": cv2.imread(resource_path(FOLDER + "join-button-dark.png"))
+        },
+        "play": cv2.imread(resource_path(FOLDER + "play.png")),
+        "menu": cv2.imread(resource_path(FOLDER + "menu-icon.png")),
+        "weather": cv2.imread(resource_path(FOLDER + "weather-icon.png")),
+        "stats": cv2.imread(resource_path(FOLDER + "stats.png")),
+        "stats mask": cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-mask.png")), cv2.COLOR_BGR2GRAY),
+        "stats data mask": cv2.cvtColor(cv2.imread(resource_path(FOLDER + "stats-data-mask.png")), cv2.COLOR_BGR2GRAY)
+    }
+
+    @staticmethod
+    def get(imageName, theme = None):
+        imageName = imageName.lower()
+        if imageName not in Images._Images.keys():
+            return None
+        
+        image = Images._Images[imageName]
+
+        if not isinstance(image, dict):
+            return image
+        else:
+            theme = theme.lower()
+
+            if theme and theme in image.keys():
+                return image[theme]
+            return None
 
 
 class InputHandler(threading.Thread):
@@ -191,30 +219,40 @@ class Game(threading.Thread):
         info_frame.pack_propagate(False)
         info_frame.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.Y)
 
-        tk.Label(info_frame, text=self.getName()).pack(side=tk.TOP, padx=10, pady=10)
+        tk.Label(info_frame, text=self.getName()).pack(side=tk.TOP, pady=(10, 0))
 
         info_frame_bottom = tk.Frame(info_frame)
         info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
 
-        inte = tk.StringVar(value=(self.server + 1))
+        self.theme = tk.StringVar()
+        self.theme.set("Dark" if self.isDarkmode() else "Light")
 
-        def validate():
-            num = max(0, int("0" + "".join([n for n in inte.get() if n.isnumeric()])))
-            inte.set(num)
+        theme_frame = tk.Frame(info_frame_bottom)
+        theme_frame.pack(fill=tk.X, side=tk.TOP, pady=1)
+        tk.Label(theme_frame, text="Theme:") \
+            .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
+        tk.OptionMenu(theme_frame, self.theme, "Light", "Dark") \
+            .pack(fill=tk.X, side=tk.RIGHT, anchor=tk.N, expand=True)
+    
+        server = tk.StringVar(value=(self.server + 1))
+
+        def validateServer():
+            num = max(0, int("0" + "".join([n for n in server.get() if n.isnumeric()])))
+            server.set(num)
             self.setServer(num)
             return True
 
-        inte.trace_add("write", lambda *e: validate())
+        server.trace_add("write", lambda *e: validateServer())
 
         # tk.Label(info_frame_bottom, text="Server settings") \
         #     .pack(fill=tk.X, side=tk.TOP, anchor=tk.N, pady=5, padx=5, expand=True)
 
         server_frame = tk.Frame(info_frame_bottom)
-        server_frame.pack(fill=tk.X, side=tk.TOP)
+        server_frame.pack(fill=tk.X, side=tk.TOP, pady=1)
         tk.Label(server_frame, text="Server:") \
-            .pack(fill=tk.X, side=tk.LEFT, anchor=tk.N, pady=5, padx=5, expand=True)
-        tk.Entry(server_frame, textvariable=inte) \
-            .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, pady=5, padx=5, expand=True)
+            .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
+        tk.Entry(server_frame, textvariable=server) \
+            .pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, expand=True)
 
         tk.Label(info_frame_bottom, state=tk.DISABLED, text="Which server (from top) will be selected\n0 means, pause rolling for this client", 
                  font=(None, 10), anchor=tk.W, justify=tk.LEFT).pack(fill=tk.X, side=tk.TOP)
@@ -265,7 +303,7 @@ class Game(threading.Thread):
             sleep(.1)
         self.win = newWin
 
-        self.findAndClick(TWISTED, threshold=0.005)
+        self.awaitFind("twisted", threshold=0.005)
         raise Exception()
 
     def timeOutDetection(self):
@@ -362,37 +400,42 @@ class Game(threading.Thread):
 
         return img.astype(dtype=np.uint8)
 
-    def findCoords(self, image, interval=.25, threshold=.1):
-        ox, oy = None, None
-        while True:
-            error, (x, y) = self.findPos(image[1], self.getscr())
-
-            self.status = f"img {image[0]}, err {error}, coords {(x, y)}"
-
-            if error <= threshold:
-                if ox == x and oy == y:
-                    return x, y
-                ox, oy = x, y
-            else:
-                ox, oy = None, None
-
-            sleep(interval)
-
-    def findAndClick(self, images, threshold=.1):
-        if type(images) is not list:
+    def awaitFind(self, images, threshold=.1, click=True, interval=.25):
+        if not isinstance(images, list):
             images = [images]
 
         for image in images:
-            x, y = self.findCoords(image, threshold=threshold)
+            ox, oy = None, None
+            while True:
+                error, (x, y) = self.findPos(Images.get(image, self.theme.get()), self.getscr())
 
-            self.IHandler.qClick(self.win, x, y)
+                self.status = f"img {image}, err {error}, coords {(x, y)}"
+
+                if error <= threshold:
+                    if ox == x and oy == y:
+                        break
+                    ox, oy = x, y
+                else:
+                    ox, oy = None, None
+
+                sleep(interval)
+
+            if click:
+                self.IHandler.qClick(self.win, x, y)
+
+    def isDarkmode(self):
+        whitePixels = cv2.inRange(self.getscr(True), (128, 128, 128), (255, 255, 255))
+        blackPixels = cv2.bitwise_not(whitePixels)
+
+        wpCount = cv2.countNonZero(whitePixels)
+        bpCount = cv2.countNonZero(blackPixels)
+
+        return wpCount/bpCount <= .1
 
     def openServers(self):
-        self.findAndClick([FRIEND, JOIN_FRIEND], threshold=.075)
+        self.awaitFind(["friend", "join friend"], threshold=.075)
 
-        while not (error := self.findPos(JOIN_BTN[1], self.getscr())[0]) <= .005:
-            self.status = f"Waiting for join button, err {error}"
-            sleep(.25)
+        self.awaitFind("join btn", threshold=.005, click=False)
 
     def joinServer(self):
         for _ in range(max(0, int((self.server - 1) * self.MULTIPLIERS[self.name]))):
@@ -401,7 +444,13 @@ class Game(threading.Thread):
 
         sleep(.5)
 
-        servers = self.findPos(JOIN_BTN[1], self.getscr(), 0.005)
+        match self.theme.get().lower():
+            case "light":
+                threshold = 0.005
+            case "dark":
+                threshold = 0.025
+
+        servers = self.findPos(Images.get("join btn", self.theme.get()), self.getscr(), threshold)
         (x, y) = servers[min(1, self.server)]
 
         self.IHandler.qClick(self.win, x, y)
@@ -423,7 +472,7 @@ class Game(threading.Thread):
 
             scr = self.getscr()
 
-            res = cv2.matchTemplate(scr, STATS[1], cv2.TM_SQDIFF_NORMED, mask=STATS_MASK[1])
+            res = cv2.matchTemplate(scr, Images.get("stats"), cv2.TM_SQDIFF_NORMED, mask=Images.get("stats mask"))
             lerror, herror, loc, _ = cv2.minMaxLoc(res)
             success = lerror <= .1
             x, y = loc
@@ -436,7 +485,7 @@ class Game(threading.Thread):
                     ox, oy = x, y
                     continue
 
-            h, w = STATS[1].shape[:2]
+            h, w = Images.get("stats").shape[:2]
             ih, iw = scr.shape[:2]
 
             clamp = lambda n, minn, maxn: max(min(maxn, n), minn)
@@ -446,9 +495,9 @@ class Game(threading.Thread):
 
             stats = []
 
-            contours, _ = cv2.findContours(STATS_DATA_MASK[1], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(Images.get("stats data mask"), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for contour in contours[::-1]:
-                contourMask = np.zeros_like(STATS_DATA_MASK[1])
+                contourMask = np.zeros_like(Images.get("stats data mask"))
 
                 cv2.drawContours(contourMask, [contour], 0, (255), -1)
 
@@ -491,7 +540,7 @@ class Game(threading.Thread):
                 self.openServers()
                 self.joinServer()
 
-                self.findAndClick([PLAY, MENU, WEATHER])
+                self.awaitFind(["play", "menu", "weather"])
 
                 stats = self.getInfo()
                 cape = stats["FORECAST"]["CAPE"]
@@ -696,7 +745,7 @@ class Gui:
         self.root.iconphoto(True, tk.PhotoImage(file=resource_path("icon.png")))
 
         self.root.defaultFont = font.nametofont("TkDefaultFont")
-        self.root.defaultFont.configure(family="Comic Sans MS", size=18)
+        self.root.defaultFont.configure(family="Comic Sans MS", size=16)
 
         lbg = "#ccc"
         self.left_side = tk.Frame(self.root, width=350, background=lbg)
@@ -748,6 +797,7 @@ class Gui:
             ["Lowest cape", lambda timeHistory, capeHistory: f"{min(capeHistory)} J/kg" if capeHistory else None],
             ["Average cape", lambda timeHistory, capeHistory: f"{round(sum(capeHistory) / len(capeHistory))} J/kg" if capeHistory else None],
             ["Avg reroll time", lambda timeHistory, capeHistory: f"{round(sum(timeHistory) / len(timeHistory), 1)} sec" if timeHistory else None],
+            ["Rerolls per hour", lambda timeHistory, capeHistory: f"{round(3600 / (sum(timeHistory) / len(timeHistory)))} rph" if timeHistory else None],
             ["Servers rolled", lambda timeHistory, capeHistory: len(capeHistory) if capeHistory else None]
             ]:
             label = tk.Label(self.left_side_SF)
