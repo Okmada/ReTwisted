@@ -14,8 +14,6 @@ Contributions are appreciated.
 
 ## Running
 
-- Make sure you have the light theme in Roblox.
-
 - Supports Microsoft Roblox and Roblox Player.
 
 - To have Roblox registered in the app, first start Roblox and then start the app.
