@@ -511,7 +511,7 @@ class Game(threading.Thread):
 
                 cropped = cv2.threshold(cropped, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
-                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 4)[::-1], interpolation=cv2.INTER_LANCZOS4)  
+                cropped = cv2.resize(cropped, (np.array(cropped.shape) * 4)[::-1], interpolation=cv2.INTER_NEAREST)  
 
                 cropped = cv2.blur(cropped, (5, 5))
 
