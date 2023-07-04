@@ -430,12 +430,13 @@ class Game(threading.Thread):
         wpCount = cv2.countNonZero(whitePixels)
         bpCount = cv2.countNonZero(blackPixels)
 
-        return wpCount/bpCount <= .1
+        ratio = wpCount/bpCount
+        return ratio <= .25
 
     def openServers(self):
         self.awaitFind(["friend", "join friend"], threshold=.075)
 
-        self.awaitFind("join btn", threshold=.005, click=False)
+        self.awaitFind("join btn", threshold=.025, click=False)
 
     def joinServer(self):
         for _ in range(max(0, int((self.server - 1) * self.MULTIPLIERS[self.name]))):
