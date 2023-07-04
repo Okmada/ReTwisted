@@ -872,9 +872,7 @@ class Config:
                        "Will stop rolling, if it's under this number.\nEntring 0 will disable this feature."]
         },
         "timeout": [int, 120, "Maximum amount of time that the server can take to reroll.\nEntring 0 will disable timeout feature."],
-        "paths": {
-            "tesseract": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", "Path to Tesseract executable for OCR to work."]
-        }
+        "tesseract path": [str, "C:\\Program Files\\Tesseract-OCR\\tesseract.exe", "Path to Tesseract executable for OCR to work."]
     }
 
     CONFIG_FILE = ".config.json"
@@ -1049,7 +1047,7 @@ class Config:
 
 
 class Tesseract:
-    TESERACT_CONFIG = ["paths", "tesseract"]
+    TESERACT_CONFIG = ["tesseract path"]
     
     def __init__(self, setSetting, getSetting, parent):
         self.setSetting = setSetting
