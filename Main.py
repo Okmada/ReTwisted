@@ -798,7 +798,7 @@ class Gui:
             ["Lowest cape", lambda timeHistory, capeHistory: f"{min(capeHistory)} J/kg" if capeHistory else None],
             ["Average cape", lambda timeHistory, capeHistory: f"{round(sum(capeHistory) / len(capeHistory))} J/kg" if capeHistory else None],
             ["Avg reroll time", lambda timeHistory, capeHistory: f"{round(sum(timeHistory) / len(timeHistory), 1)} sec" if timeHistory else None],
-            ["Rerolls per hour", lambda timeHistory, capeHistory: f"{round(3600 / ((sum(timeHistory) / len(timeHistory)) * len(self.games)))} rph" if timeHistory else None],
+            ["Rerolls per hour", lambda timeHistory, capeHistory: f"{round(len(self.games) * (3600 / (sum(timeHistory) / len(timeHistory))))} rph" if timeHistory else None],
             ["Servers rolled", lambda timeHistory, capeHistory: len(capeHistory) if capeHistory else None]
             ]:
             label = tk.Label(self.left_side_SF)
