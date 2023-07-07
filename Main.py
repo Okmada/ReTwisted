@@ -692,24 +692,36 @@ class Gui:
         self.setup()
 
         self.games = []
-        for className in Game.CLASSNAMES.keys():
-            if (win := win32gui.FindWindow(className, "Roblox")) != 0:
-                self.newGame(win)
+        self.addGames()
 
         self.updateHisotry()
 
         self.root.mainloop()
 
-    def newGame(self, win):
-        self.games.append(Game(
-            win,
-            self.right_side_SF,
-            self.ihandler,
-            self.config.getSetting,
-            self.handleData,
-            self.pausedE,
-            server=(len(self.games) + 1)
-        ))
+    def addGames(self):
+        for className in Game.CLASSNAMES.keys():
+            if (win := win32gui.FindWindow(className, "Roblox")) != 0:
+                self.games.append(Game(
+                    win,
+                    self.right_side_SF,
+                    self.ihandler,
+                    self.config.getSetting,
+                    self.handleData,
+                    self.pausedE,
+                    server=(len(self.games) + 1)
+                ))
+
+        if not len(self.games):
+            frame = tk.Frame(self.right_side_SF, width=470, height=500)
+            frame.pack_propagate(False)
+            frame.pack(padx=5, pady=5)
+            tk.Label(frame, text="No Roblox detected", font=(None, 20)).pack(side=tk.TOP, pady=(10, 0))
+            tk.Label(frame, text="Make sure you have started Roblox before Re:Twisted", wraplength=470) \
+                .pack(side=tk.TOP, pady=(10, 0))
+            tk.Button(frame, text="Restart", 
+                      command=lambda: os.execl(sys.executable, sys.executable, * sys.argv), 
+                      background="red", activebackground="red") \
+                .pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
     def handleData(self, stats):
         cape = stats["FORECAST"]["CAPE"]
