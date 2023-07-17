@@ -693,25 +693,12 @@ class Gui:
 
         self.games = []
         self.detectGames()
-        self.addGames()
 
         self.updateHisotry()
 
         self.root.mainloop()
 
     def detectGames(self):
-        for className in Game.CLASSNAMES.keys():
-            if (win := win32gui.FindWindow(className, "Roblox")) != 0:
-                self.games.append(Game(
-                    win,
-                    self.right_side_SF,
-                    self.ihandler,
-                    self.config.getSetting,
-                    self.handleData,
-                    self.pausedE,
-                    server=(len(self.games) + 1)
-                ))
-    def addGames(self):
         for className in Game.CLASSNAMES.keys():
             if (win := win32gui.FindWindow(className, "Roblox")) != 0:
                 self.games.append(Game(
