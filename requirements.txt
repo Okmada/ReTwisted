@@ -1,6 +1,5 @@
 numpy
 opencv-python
-PyDirectInput
-pytesseract
+winsdk
 pywin32
 requests

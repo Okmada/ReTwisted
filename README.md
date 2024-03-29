@@ -1,4 +1,4 @@
-# Re:Twisted - 1.20 not supported
+# Re:Twisted
 
 I am not playing this game, so I won't be contributing actively (big bugs might be patched).
 
@@ -7,16 +7,13 @@ Contributions are appreciated.
 ## Installation
 
 1. Download the latest build from [releases](https://github.com/Okmada/ReTwisted/releases).
-2. Download [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) (remember to change the path to Tesseract in settings if you have changed it).
-3. Enjoy
+2. Enjoy.
 
 ## Running
 
 - Supports Microsoft Roblox and Roblox Player.
 
-- To have Roblox registered in the app, first start Roblox and then start the app.
-
-- Before starting the rolling, make sure you are on the title screen of Twisted (the screen where you have the big green button).
+- Make sure to have roblox protocol default to UWP Roblox from MS Store.
 
 ### How to get Discord webhook URL
 
