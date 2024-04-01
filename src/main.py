@@ -4,6 +4,7 @@ import gui
 from config import Config
 from controller import Controller
 from discord import Webhook
+from macro import Macro
 from roblox import Roblox
 
 print("/!\\ DO NOT CLOSE THIS CONSOLE /!\\")
@@ -31,13 +32,15 @@ gui_main.unpause_events.append(controller.unpause)
 
 # CREATE ROBLOX GAMES
 for roblox_type in Roblox.CLASS_NAMES.keys():
-    roblox_game = Roblox(roblox_type, controller, config, webhook)
-    roblox_game.add_pause_callback(lambda *_: gui_pause.open_and_pause())
+    roblox_game = Roblox(roblox_type)
 
-    gui_main.pause_events.append(roblox_game.pause)
-    gui_main.unpause_events.append(roblox_game.unpause)
+    macro = Macro(roblox_game, controller, config, webhook)
+    macro.add_pause_callback(lambda *_: gui_pause.open_and_pause())
 
-    gui.RobloxFrame(gui_main.games_scrollframe, roblox_game)
+    gui_main.pause_events.append(macro.pause)
+    gui_main.unpause_events.append(macro.unpause)
+
+    gui.RobloxFrame(gui_main.games_scrollframe, roblox_game, macro)
 
 root.mainloop()
 

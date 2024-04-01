@@ -5,7 +5,7 @@ import sys
 import tkinter as tk
 import tkinter.font
 
-from roblox import Roblox
+from macro import Data
 
 VERSION = "2.0"
 
@@ -76,7 +76,7 @@ class Main:
         self.games_scrollframe = ScrollFrame(self.right_side)
 
 class RobloxFrame:
-    def __new__(self, master, roblox):
+    def __new__(self, master, roblox, macro):
         frame = tk.Frame(master, height=250, background="#aaa")
         frame.pack(padx=5, pady=5, fill=tk.X)
         frame.pack_propagate(False)
@@ -102,7 +102,7 @@ class RobloxFrame:
             historyText.insert("1.0", text)
             historyText.config(state=tk.DISABLED)
 
-        roblox.add_data_callback(add_text)
+        macro.add_data_callback(add_text)
 
         # LEFT SIDE
 
@@ -118,9 +118,9 @@ class RobloxFrame:
         enabled_frame = tk.Frame(info_frame_bottom)
         enabled_frame.pack(fill=tk.X, side=tk.TOP)
 
-        enabled_var = tk.IntVar(value=roblox.get_enabled())
+        enabled_var = tk.IntVar(value=macro.get_enabled())
 
-        enabled_var.trace_add("write", lambda *e: roblox.set_enabled(bool(enabled_var.get())))
+        enabled_var.trace_add("write", lambda *e: macro.set_enabled(bool(enabled_var.get())))
 
         tk.Label(enabled_frame, text="Enabled") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
@@ -130,9 +130,9 @@ class RobloxFrame:
         lite_mode_frame = tk.Frame(info_frame_bottom)
         lite_mode_frame.pack(fill=tk.X, side=tk.TOP)
 
-        lite_mode_var = tk.IntVar(value=roblox.get_lite_mode())
+        lite_mode_var = tk.IntVar(value=macro.get_lite_mode())
 
-        lite_mode_var.trace_add("write", lambda *e: roblox.set_lite_mode(bool(lite_mode_var.get())))
+        lite_mode_var.trace_add("write", lambda *e: macro.set_lite_mode(bool(lite_mode_var.get())))
 
         tk.Label(lite_mode_frame, text="Lite mode") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
@@ -142,7 +142,7 @@ class RobloxFrame:
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)
 
-        server_url_var = tk.StringVar(value=f"privateServerLinkCode={roblox.get_server()}" if roblox.get_server() else "")
+        server_url_var = tk.StringVar(value=f"privateServerLinkCode={macro.get_server()}" if macro.get_server() else "")
 
         tk.Label(server_frame, text="Server url:") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
@@ -154,11 +154,11 @@ class RobloxFrame:
             if code:
                 server_url_entry.configure(highlightbackground="#54de01", highlightcolor="#54de01")
 
-                roblox.set_server(int(code.group(1)))
+                macro.set_server(int(code.group(1)))
             else:
                 server_url_entry.configure(highlightbackground="red", highlightcolor="red")
 
-                roblox.set_server(None)
+                macro.set_server(None)
 
         server_url_var.trace_add("write", write_verify_url)
         write_verify_url()
@@ -228,7 +228,7 @@ class ConfigWindow:
     class ConditionFrame:
         class ConditionGroup:
             class Condition:
-                data_options = list(Roblox.Data.FORMAT.keys())
+                data_options = list(Data.FORMAT.keys())
                 comparison_options = ["==", "<=", ">="]
 
                 def __init__(self, master, list):
@@ -271,7 +271,7 @@ class ConfigWindow:
 
                 def update_first(self, *args):
                     selected = self.first_var.get()
-                    data_format = Roblox.Data.FORMAT[selected]
+                    data_format = Data.FORMAT[selected]
 
                     self.third_var.set("")
 
@@ -283,7 +283,7 @@ class ConfigWindow:
 
                 def update_third(self, *args):
                     selected = self.first_var.get()
-                    data_format = Roblox.Data.FORMAT[selected]
+                    data_format = Data.FORMAT[selected]
                     input_value = self.third_var.get()
 
                     if data_format == str:
