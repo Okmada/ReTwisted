@@ -140,7 +140,10 @@ class Controller(threading.Thread):
         continue_event = threading.Event()
 
         def func():
-            self._click_in_window(win, point)
+            try:
+                self._click_in_window(win, point)
+            except:
+                pass
             continue_event.set()
 
         self.add_to_queue(func)
@@ -185,7 +188,10 @@ class Controller(threading.Thread):
         continue_event = threading.Event()
 
         def func():
-            self._press_key(win, key)
+            try:
+                self._press_key(win, key)
+            except:
+                pass
             continue_event.set()
 
         self.add_to_queue(func)
@@ -199,12 +205,10 @@ class Controller(threading.Thread):
 
             if self.queue:
                 try:
-                    self.queue[0]()
+                    self.queue.pop(0)()
                 except:
                     pass
                 finally:
-                    del self.queue[0]
-
                     time.sleep(.5)
             else:
                 self.queue_event.clear()
