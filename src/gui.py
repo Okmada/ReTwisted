@@ -76,7 +76,7 @@ class Main:
         self.games_scrollframe = ScrollFrame(self.right_side)
 
 class RobloxFrame:
-    def __new__(self, master, roblox, macro):
+    def __new__(self, master, macro):
         frame = tk.Frame(master, height=250, background="#aaa")
         frame.pack(padx=5, pady=5, fill=tk.X)
         frame.pack_propagate(False)
@@ -110,7 +110,7 @@ class RobloxFrame:
         info_frame.pack_propagate(False)
         info_frame.pack(padx=5, pady=5, side=tk.LEFT, fill=tk.Y)
 
-        tk.Label(info_frame, text=roblox.get_name(), font=(FONT, 16)).pack(side=tk.TOP, pady=(10, 0))
+        tk.Label(info_frame, text=macro.roblox.get_name(), font=(FONT, 16)).pack(side=tk.TOP, pady=(10, 0))
 
         info_frame_bottom = tk.Frame(info_frame)
         info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)

@@ -40,7 +40,7 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)
 
-    gui.RobloxFrame(gui_main.games_scrollframe, roblox_game, macro)
+    gui.RobloxFrame(gui_main.games_scrollframe, macro)
 
 root.mainloop()
 
