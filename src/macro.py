@@ -139,13 +139,15 @@ class Macro(threading.Thread):
                     case 5:
                         # SELECT PRIOR IF GRAY NOT DETECTED
                         if not cv2.inRange(img, GRAY, GRAY).any():
-                            self.controller.async_click(self.roblox.hwnd, (round(W * 0.5 + 3), round(H * 0.7 + 4)))
-                            self.controller.sync_click(self.roblox.hwnd, (round(W * 0.5 + 3), round(H * 0.7 + 4)))
+                            point = (round(W * 0.5 + 3), round(H * 0.7 + 4))
+                            self.controller.async_click(self.roblox.hwnd, point)
+                            self.controller.sync_click(self.roblox.hwnd, point)
 
                             time.sleep(.5)
 
-                            self.controller.async_click(self.roblox.hwnd, (round(W * 0.5 + 120), round(H * 0.4705 + 15)))
-                            self.controller.sync_click(self.roblox.hwnd, (round(W * 0.5 + 120), round(H * 0.4705 + 15)))
+                            point = (round(W * 0.51 + 120), round(H * 0.4705 + 15))
+                            self.controller.async_click(self.roblox.hwnd, point)
+                            self.controller.sync_click(self.roblox.hwnd, point)
 
                             time.sleep(1)
 
