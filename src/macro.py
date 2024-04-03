@@ -343,19 +343,19 @@ class Macro(threading.Thread):
         return time.time() - self.time > time_max if time_max else False
 
     def set_enabled(self, value):
-        value = bool(value)
+        value = bool(value or False)
 
         self._enabled = value
         self.config.set([self.roblox.name, "enabled"], value)
 
     def set_lite_mode(self, value):
-        value = bool(value)
+        value = bool(value or False)
 
         self._lite_mode = value
         self.config.set([self.roblox.name, "litemode"], value)
 
     def set_server(self, value):
-        value = int(value) if value else 0
+        value = int(value or 0)
 
         self._server = value
         self.config.set([self.roblox.name, "server"], value)
