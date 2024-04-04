@@ -149,7 +149,7 @@ class Macro(threading.Thread):
                             self.controller.async_click(self.roblox.hwnd, point)
                             self.controller.sync_click(self.roblox.hwnd, point)
 
-                            time.sleep(1)
+                            time.sleep(3)
 
                         self.phase += 1
 
