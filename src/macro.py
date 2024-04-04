@@ -1,3 +1,4 @@
+import re
 import threading
 import time
 
@@ -223,54 +224,60 @@ class Macro(threading.Thread):
 
                         data_output = []
 
-                        # PROCESS MAIN DATA
+                        # THERMOS
                         main_data = self._mask_image(data, data_masks[0])
                         main_data_mask = cv2.bitwise_xor(cv2.inRange(main_data, GRAY, GRAY), data_masks[0])
                         
                         main_data_contours, _ = cv2.findContours(main_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
                         main_data_contours = sorted(main_data_contours, key=lambda e: sum(self._get_contour_center(e)))
 
-                        # default handling
-                        for cont in (main_data_contours[i] for i in [0, 1, 2, 3, 4, 5, 6]):
-                            cont_img = self._crop_contour(data, cont)
-                            mins = cv2.merge([np.min(cont_img, axis=2)] * 3)
-
-                            data_output.append(self._read_number(cont_img - mins))
-
-                        # special handling for rhs
-                        for cont in (main_data_contours[i] for i in [7, 8]):
-                            cont_img = self._crop_contour(data, cont)
-                            mins = cv2.merge([np.min(cont_img, axis=2)] * 3)
-
-                            cont_img = self._crop_image(cont_img - mins)
-                            cont_img = cont_img[:, :-round(cont_img.shape[0] * 1.2)]
-
-                            data_output.append(self._read_number(cont_img))
-
-
-                        # PROCESS DATA ON SIDE
                         side_data = self._mask_image(data, data_masks[1])
                         side_data_mask = cv2.bitwise_xor(cv2.inRange(side_data, GRAY, GRAY), data_masks[1])
 
                         side_data_contours, _ = cv2.findContours(side_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
                         side_data_contours = sorted(side_data_contours, key=lambda e: sum(self._get_contour_center(e)))
 
-                        # special handling for srh
-                        cont_img = self._crop_contour(data, side_data_contours[0])
-                        mins = cv2.merge([np.min(cont_img, axis=2)] * 3)
+                        CUT_COEFF = [
+                            0.7, # TEMPERATURE
+                            0.7,  # DEWPOINT
+                            2, # CAPE
+                            2, # 3CAPE
+                            2.6, # 0-3KM LAPSES RATES
+                            2.6, # 3-6KM LAPSES RATES
+                            1.5, # PWAT
+                            1.2, # 700-500mb RH
+                            1.2, # SURFACE RH
 
-                        cont_img = self._crop_image(cont_img - mins)
-                        cont_img = cont_img[:, :round(cont_img.shape[1] * 0.45 - 1)]
+                            2.5, # SRH
+                            0, # STORM MOTION
+                            0, # STP
+                            0, # VTP
+                        ]
 
-                        data_output.append(self._read_number(cont_img))
-
-                        # default handling
-                        for cont in (side_data_contours[i] for i in [1, 3, 4]):
+                        for cont, unit_coef in zip(main_data_contours + [side_data_contours[i] for i in [0, 1, 3, 4]], CUT_COEFF, strict=True):
                             cont_img = self._crop_contour(data, cont)
+
+                            cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
+
+                            mask = cv2.threshold(cont_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+                            cont_img = np.where(mask, cont_img, 0)
+
+                            cont_img = (cont_img * (255 / np.max(cont_img))).astype(np.uint8)
+
+                            cont_img = self._crop_image(cont_img)
+
+                            if unit_coef:
+                                cont_img = cont_img[:, :-round(unit_coef * cont_img.shape[0])]
+
+                            SCALE = 340 / cont_img.shape[0]
+
+                            cont_img = cv2.copyMakeBorder(cont_img, *[int(cont_img.shape[0] * 0.35)] * 4, cv2.BORDER_CONSTANT)
+                            new_dims = [round(dim * SCALE) for dim in cont_img.shape[:2]][::-1]
+                            cont_img = cv2.resize(cont_img, new_dims, interpolation=cv2.INTER_LINEAR)
 
                             data_output.append(self._read_number(cont_img))
 
-                        # PROCESS DAYS DATA
+                        # DAYS
                         top_data = self._mask_image(data, data_masks[2])
                         top_data_mask = cv2.bitwise_xor(cv2.inRange(top_data, GRAY, GRAY), data_masks[2])
 
@@ -418,35 +425,12 @@ class Macro(threading.Thread):
         return transparent_image
 
     @staticmethod
-    def _preprocess_for_ocr(image):
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        mask = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        image = np.where(mask, image, 0)
-
-        image = (image * (255 / np.max(image))).astype(np.uint8)
-
-        image = Macro._crop_image(image)
-
-        SCALE = 120 / image.shape[0]
-        new_dims = [round(dim * SCALE) for dim in image.shape[:2]][::-1]
-
-        image = cv2.resize(image, new_dims, interpolation=cv2.INTER_LINEAR)
-
-        BORDER = 20
-        image = cv2.copyMakeBorder(image, BORDER, BORDER, BORDER, BORDER, cv2.BORDER_CONSTANT)
-
-        return image
-
-    @staticmethod
     def _read_number(image):
-        image = Macro._preprocess_for_ocr(image)
-
         text = Ocr.ocr(image)
 
-        text = "".join([c for c in text if c in "0123456789."])
-        text = ".".join([e for e in text.split(".") if len(e)][:2])
-        return text or "0"
+        nums = re.findall("([0-9]+[.]{1}[0-9]+|[0-9]+)", text)
+
+        return nums[-1] if nums else "0"
 
     @staticmethod
     def _mask_image(image, mask):
