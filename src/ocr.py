@@ -1,10 +1,10 @@
 import asyncio
 
 import cv2
-from winsdk.windows.graphics.imaging import (BitmapAlphaMode,
-                                             BitmapPixelFormat, SoftwareBitmap)
-from winsdk.windows.media.ocr import OcrEngine
-from winsdk.windows.security.cryptography import CryptographicBuffer
+from winrt.windows.graphics.imaging import (BitmapPixelFormat, 
+                                            BitmapAlphaMode, SoftwareBitmap)
+from winrt.windows.media.ocr import OcrEngine
+from winrt.windows.security.cryptography import CryptographicBuffer
 
 
 class Ocr:
