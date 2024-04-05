@@ -358,7 +358,7 @@ class ConfigWindow:
         def __init__(self, master):
             self.scroll_frame = ScrollFrame(master)    
 
-            self._sublist = []            
+            self._sublist = []
 
             tk.Button(self.scroll_frame, text="Add group", command=lambda:
                       self.ConditionGroup(self.scroll_frame, self._sublist)) \
