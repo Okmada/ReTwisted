@@ -355,10 +355,19 @@ class ConfigWindow:
             def export_config(self):
                 return [condintion.export_config() for condintion in self._sublist]
 
+        DESCRIPTION = "Bot stops if at least one group has all the conditions met within the group."
+
         def __init__(self, master):
             self.scroll_frame = ScrollFrame(master)    
 
             self._sublist = []
+
+            description = tk.Label(self.scroll_frame, state=tk.DISABLED, text=self.DESCRIPTION,
+                                   font=(FONT, 10), justify=tk.CENTER)
+            description.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
+
+            description.config(wraplength=description.winfo_width())
+            description.bind('<Configure>', lambda *_: description.config(wraplength=description.winfo_width()))
 
             tk.Button(self.scroll_frame, text="Add group", command=lambda:
                       self.ConditionGroup(self.scroll_frame, self._sublist)) \
