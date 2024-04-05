@@ -385,7 +385,7 @@ class ConfigWindow:
                 "user id": [str, "",
                             "User which will be pinged in message."]
             },
-            "timeout": [int, 60, "Maximum amount of time that the server can take to reroll.\nEntring 0 will disable timeout feature."]
+            "timeout": [int, 75, "Maximum amount of time that the server can take to reroll.\nEntring 0 will disable timeout feature."]
         }
 
         def __init__(self, master):
