@@ -20,7 +20,7 @@ gui_main = gui.Main(root)
 gui_config = gui.ConfigWindow(root, config)
 gui_main.config_events.append(gui_config.open)
 
-gui_pause = gui.PauseWindow(root)
+gui_pause = gui.PauseWindow(root, config)
 gui_pause.pause_events = gui_main.pause_events
 gui_pause.unpause_events = gui_main.unpause_events
 gui_main.unpause_events.append(gui_pause.close)
@@ -35,7 +35,7 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
     roblox_game = Roblox(roblox_type)
 
     macro = Macro(roblox_game, controller, config, webhook)
-    macro.add_pause_callback(lambda *_: gui_pause.open_and_pause())
+    macro.add_pause_callback(lambda *_: gui_pause.open())
 
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)

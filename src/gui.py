@@ -2,6 +2,8 @@ import datetime
 import os
 import re
 import sys
+import threading
+import time
 import tkinter as tk
 import tkinter.font
 
@@ -184,18 +186,22 @@ class ScrollFrame:
         return frame
     
 class PauseWindow:
-    def __init__(self, master):
+    def __init__(self, master, config):
         self.root = tk.Toplevel(master, background="red")
         self.root.withdraw()
 
+        self.config = config
+
         self.pause_events = []
         self.unpause_events = []
+
+        self._timer = None
 
         self.setup()
 
     def setup(self):
         self.root.title("Re:Twisted - pop up")
-        self.root.geometry("350x150")
+        self.root.geometry("360x150")
         self.root.resizable(False, False)
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -209,20 +215,52 @@ class PauseWindow:
         tk.Label(frame, text="Good server has been found", font=(FONT, 16)).pack()
         tk.Label(frame, text="Would you like to continue rerolling?", font=(FONT, 14)).pack()
 
+        self.timer_text = tk.Label(frame, text="If not closed will continue to reroll in n minutes (00:00)", font=(FONT, 10))
+        self.timer_text.pack()
+
         buttons_frame = tk.Frame(frame)
         buttons_frame.pack(side=tk.BOTTOM, fill=tk.X, expand=True)
 
-        tk.Button(buttons_frame, text="Continue rerolling", font=14, command=lambda self=self: [f() for f in self.unpause_events]) \
+        tk.Button(buttons_frame, text="Continue rerolling", font=14, command=self.unpause_all) \
             .pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
         tk.Button(buttons_frame, text="Close and wait", font=14, command=self.close) \
             .pack(side=tk.RIGHT, padx=10, fill=tk.X, expand=True)        
+        
+    def unpause_all(self):
+        [f() for f in self.unpause_events]
 
-    def open_and_pause(self):
+    def pause_all(self):
         [f() for f in self.pause_events]
+
+    def start_timer(self):
+        timer_mins = int(self.config.get(["config", "resume timer"]) or 0)
+
+        if not timer_mins:
+            self.timer_text.config(text="")
+            return
+        
+        timestamp = datetime.datetime.fromtimestamp(time.time() + timer_mins * 60).strftime("%H:%M")
+        self.timer_text.config(text=f"If not closed will continue to reroll in {timer_mins} minutes ({timestamp})")
+
+        self._timer = threading.Timer(timer_mins * 60, self.unpause_all)
+        self._timer.start()
+
+    def cancel_timer(self):
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+
+    def open(self):
+        self.pause_all()
+
         self.root.deiconify()
+
+        self.start_timer()
 
     def close(self):
         self.root.withdraw()
+
+        self.cancel_timer()
     
 class ConfigWindow:
     class ConditionFrame:
@@ -394,7 +432,8 @@ class ConfigWindow:
                 "user id": [str, "",
                             "User which will be pinged in message."]
             },
-            "timeout": [int, 75, "Maximum amount of time that the server can take to reroll.\nEntring 0 will disable timeout feature."]
+            "timeout": [int, 75, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."],
+            "resume timer": [int, 15, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."],
         }
 
         def __init__(self, master):
