@@ -347,6 +347,9 @@ class Macro(threading.Thread):
     def is_timedout(self):
         time_max = int(self.config.get(["config", "timeout"]) or 0)
 
+        if not time_max:
+            return False
+        
         return time.time() - self.time > time_max if time_max else False
 
     def set_enabled(self, value):
