@@ -206,7 +206,7 @@ class PauseWindow:
         frame = tk.Frame(red_frame)
         frame.pack(padx=8, pady=8, fill=tk.BOTH, expand=True)
 
-        tk.Label(frame, text="Good server have been found", font=(FONT, 16)).pack()
+        tk.Label(frame, text="Good server has been found", font=(FONT, 16)).pack()
         tk.Label(frame, text="Would you like to continue rerolling?", font=(FONT, 14)).pack()
 
         buttons_frame = tk.Frame(frame)
