@@ -257,7 +257,16 @@ class Macro(threading.Thread):
                         for cont, unit_coef in zip(main_data_contours + [side_data_contours[i] for i in [0, 1, 3, 4]], CUT_COEFF, strict=True):
                             cont_img = self._crop_contour(data, cont)
 
+                            color_text_mask = np.min(cont_img, axis=2)
+
                             cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
+
+                            color_text = np.where(cont_img - color_text_mask > 0, cont_img, 0)
+
+                            if color_text.any() > 0:
+                                stretched_color_text = (color_text * (255 / np.max(color_text))).astype(np.uint8)
+
+                                cont_img = np.where(stretched_color_text > 0, stretched_color_text, cont_img)
 
                             mask = cv2.threshold(cont_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
                             cont_img = np.where(mask, cont_img, 0)
