@@ -1,0 +1,42 @@
+on:
+  release:
+    types: [published]
+
+name: Build
+jobs:
+  build:
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    env:
+      app_name: "ReTwisted-${{ github.event.release.tag_name }}.exe"
+      run_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Add footer to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          footer: "\n---\n\nExe files are automatically built via Github actions\nLink to build action: ${{ env.run_link }}"
+        run: $(gh release view ${{ github.event.release.tag_name }} --json body -q .body) + "${{ env.footer }}" | gh release edit ${{ github.event.release.tag_name }} -F -
+
+      - name: Download pip dependencies
+        run: pip install -r requirements.txt pyinstaller Pillow
+        
+      - name: Build app
+        run: pyinstaller --onefile --noconsole --add-data "icon.png;." -i icon.png -n ${{ env.app_name }} src/main.py
+
+      - name: Calculate SHA256 hash
+        working-directory: dist
+        run: certutil -hashfile ${{ env.app_name }} SHA256
+
+      - name: Upload to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.event.release.tag_name }} ./dist/${{ env.app_name }}
