@@ -48,7 +48,7 @@ class Data:
 
 class Macro(threading.Thread):
     def __init__(self, roblox, controller, config, webhook):
-        super().__init__(daemon=True)
+        super().__init__(daemon=True, name=roblox.get_name())
 
         self.pause_event = threading.Event()
 
