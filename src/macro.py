@@ -146,7 +146,7 @@ class Macro(threading.Thread):
 
                             time.sleep(.5)
 
-                            point = (round(W * 0.51 + 120), round(H * 0.4705 + 15))
+                            point = (round(W * 0.5 + H * 0.122 - 5.3), round(H * 0.4705 + 15))
                             self.controller.async_click(self.roblox.hwnd, point)
                             self.controller.sync_click(self.roblox.hwnd, point)
 
