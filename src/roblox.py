@@ -42,16 +42,16 @@ class Roblox:
             case _:
                 return None
             
-        for _ in range(20):
-            if hwnd := self.find_roblox():
+        self.find_roblox()
+
+    def find_roblox(self, retries=20):
+        for _ in range(retries):
+            if hwnd := win32gui.FindWindow(self._name, "Roblox"):
                 self._hwnd = hwnd
                 break
             time.sleep(1)
         else:
             raise Exception("Could not find roblox")
-
-    def find_roblox(self):
-        return win32gui.FindWindow(self._name, "Roblox")
     
     def close_roblox(self):
         win32gui.PostMessage(self._hwnd, win32con.WM_CLOSE, 0, 0)
