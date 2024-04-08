@@ -2,7 +2,6 @@ on:
   release:
     types: [published]
 
-name: Build
 jobs:
   build:
     runs-on: windows-latest
