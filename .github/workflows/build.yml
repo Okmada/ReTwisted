@@ -29,7 +29,7 @@ jobs:
         run: pip install -r requirements.txt pyinstaller Pillow
         
       - name: Build app
-        run: pyinstaller --onefile --noconsole --add-data "icon.png;." -i icon.png -n ${{ env.app_name }} src/main.py
+        run: pyinstaller --onefile --add-data "icon.png;." -i icon.png -n ${{ env.app_name }} src/main.py
 
       - name: Calculate SHA256 hash
         working-directory: dist
