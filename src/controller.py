@@ -134,19 +134,13 @@ class Controller(threading.Thread):
 
     def async_click(self, win: int, point: tuple):
         func = lambda: self._click_in_window(win, point)
-        self.add_to_queue(func)
+        self.add_to_queue((func,))
 
     def sync_click(self, win: int, point: tuple):
         continue_event = threading.Event()
 
-        def func():
-            try:
-                self._click_in_window(win, point)
-            except:
-                pass
-            continue_event.set()
-
-        self.add_to_queue(func)
+        func = lambda: self._click_in_window(win, point)
+        self.add_to_queue((func, continue_event.set))
 
         continue_event.wait()
 
@@ -182,19 +176,13 @@ class Controller(threading.Thread):
 
     def async_press_key(self, win: int, key: int):
         func = lambda: self._press_key(win, key)
-        self.add_to_queue(func)
+        self.add_to_queue((func,))
 
     def sync_press_key(self, win: int, key: int):
         continue_event = threading.Event()
 
-        def func():
-            try:
-                self._press_key(win, key)
-            except:
-                pass
-            continue_event.set()
-
-        self.add_to_queue(func)
+        func = lambda: self._press_key(win, key)
+        self.add_to_queue((func, continue_event.set))
 
         continue_event.wait()
 
@@ -204,11 +192,12 @@ class Controller(threading.Thread):
             self.pause_event.wait()
 
             if self.queue:
-                try:
-                    self.queue.pop(0)()
-                except:
-                    pass
-                finally:
-                    time.sleep(.5)
+                for func in self.queue.pop(0):
+                    try:
+                        func()
+                    except:
+                        pass
+
+                time.sleep(.5)
             else:
                 self.queue_event.clear()
