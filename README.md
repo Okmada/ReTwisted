@@ -1,4 +1,4 @@
-# Re:Twisted
+# ReTwisted
 
 I am not playing this game, so I won't be contributing actively (big bugs might be patched).
 
@@ -11,9 +11,19 @@ Contributions are appreciated.
 
 ## Running
 
-- Supports Microsoft Roblox and Roblox Player.
+- Download Roblox Player from Roblox website and UWP Roblox from MS Store.
 
-- Make sure to have roblox protocol default to UWP Roblox from MS Store.
+- Make sure to have Roblox protocol default to UWP Roblox from MS Store.
+
+- Recommended layout is having each Roblox on one side of the screen 
+
+### How to get Server URL:
+
+1. Go into configuration of private server you want to reroll
+2. Generate private server link and copy it
+3. Open link in browser
+4. After being redirected copy link from address bar
+5. Paste it into ReTwisted
 
 ### How to get Discord webhook URL
 
@@ -24,11 +34,10 @@ Make sure you have permissions in that server to edit channels.
 3. Click "Create Webhook" or "View Webhooks" if you have already created webhooks.
 4. Select any webhook and click "Copy Webhook URL".
 
-### How to get Ping ID
+### How to get User ID or Role ID
 
 1. Go to settings on Discord.
 2. Click "Advanced" in the app settings.
 3. Enable developer mode.
-4. Go to "My Account".
-5. Click on the three dots next to your profile.
-6. Click "Copy User ID".
+4. Right click user or role you want to ping
+5. Press "Copy User ID" or "Copy Role ID"
