@@ -1,3 +1,5 @@
+import logging
+import sys
 import tkinter as tk
 
 import gui
@@ -7,8 +9,22 @@ from discord import Webhook
 from macro import Macro
 from roblox import Roblox
 
-print("/!\\ DO NOT CLOSE THIS CONSOLE /!\\")
+# SETUP LOGGING
+log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.NOTSET)
 
+file_handler = logging.FileHandler("latest.log", "w")
+file_handler.setFormatter(log_formatter)
+root_logger.addHandler(file_handler)
+
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(log_formatter)
+root_logger.addHandler(console_handler)
+
+logging.getLogger('asyncio').setLevel(logging.WARNING)
+
+# START CONFIG AND INITIALIZE WEBHOOK
 config = Config()
 webhook = Webhook(config)
 
@@ -43,15 +59,3 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
     gui.RobloxFrame(gui_main.games_scrollframe, macro)
 
 root.mainloop()
-
-# TODO
-# sys.stdout = TextRedirector()
-# class TextRedirector(object):
-#     def __init__(self, widget, tag="stdout"):
-#         self.widget = widget
-#         self.tag = tag
-
-#     def write(self, string):
-#         self.widget.configure(state="normal")
-#         self.widget.insert("end", string, (self.tag,))
-#         self.widget.configure(state="disabled")

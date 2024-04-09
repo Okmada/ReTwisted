@@ -1,3 +1,4 @@
+import logging
 import re
 import threading
 import time
@@ -316,12 +317,12 @@ class Macro(threading.Thread):
                         # FORMAT DATA
                         data_formated = Data(*data_output)
 
-                        print(self.roblox.get_name(), data_formated)
+                        logging.info(str(data_formated))
 
                         [f(data_formated) for f in self._data_callbacks]
 
                         if self.check_conditions(data_formated):
-                            print(self.roblox.get_name(), "Conditions passed")
+                            logging.info("Conditions passed")
 
                             code_trans = self._crop_image(self._mask_transparent(code, code_mask))
 
@@ -339,7 +340,7 @@ class Macro(threading.Thread):
                         self.time = time.time()
                         self.phase = 1
             except Exception as e:
-                print(self.roblox.get_name(), repr(e))
+                logging.error(str(e))
 
                 self.time = time.time()
                 self.phase = 1

@@ -1,4 +1,5 @@
 import ctypes
+import logging
 import threading
 import time
 from typing import Callable
@@ -195,8 +196,8 @@ class Controller(threading.Thread):
                 for func in self.queue.pop(0):
                     try:
                         func()
-                    except:
-                        pass
+                    except Exception as e:
+                        logging.error(str(e))
 
                 time.sleep(.5)
             else:
