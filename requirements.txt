@@ -2,12 +2,4 @@ numpy
 opencv-python
 pywin32
 requests
-winrt-runtime
-winrt-Windows.Foundation
-winrt-Windows.Foundation.Collections
-winrt-Windows.Globalization
-winrt-Windows.Graphics.Imaging
-winrt-Windows.Media.Ocr
-winrt-Windows.Security.Cryptography
-winrt-Windows.Storage
-winrt-Windows.Storage.Streams
+winsdk
