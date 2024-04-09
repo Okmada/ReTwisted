@@ -10,12 +10,10 @@ from winsdk.windows.security.cryptography import CryptographicBuffer
 class Ocr:
     @staticmethod
     def ibuffer(bytes):
-        """create WinRT IBuffer instance from a bytes-like object"""
         return CryptographicBuffer.create_from_byte_array(bytes)
 
     @staticmethod
     def convert_to_buffer(img):
-        """create WinRT IBuffer from numpy image"""
         H, W, *_ = img.shape
 
         if len(img.shape) == 2:
@@ -32,6 +30,13 @@ class Ocr:
 
         buffer = Ocr.ibuffer(bytes)
         return SoftwareBitmap.create_copy_from_buffer(buffer, FORMAT, W, H, ALPHA)
+    
+    @staticmethod
+    def get_language_with_ocr():
+        languages_with_ocr = list(OcrEngine.available_recognizer_languages)
+        languages_with_ocr.sort(key=lambda e: "en-" in e.language_tag, reverse=True)
+
+        return languages_with_ocr[0] if languages_with_ocr else None
 
     @staticmethod
     async def ensure_coroutine(awaitable):
@@ -43,12 +48,11 @@ class Ocr:
 
     @staticmethod
     def ocr(img):
-        languages_with_ocr = list(OcrEngine.available_recognizer_languages)
-        languages_with_ocr.sort(key=lambda e: "en-" in e.language_tag, reverse=True)
+        ocr_language = Ocr.get_language_with_ocr()
         
-        assert len(languages_with_ocr), "No language supports OCR"
+        assert ocr_language, "No language supports OCR"
 
-        ocr_engine = OcrEngine.try_create_from_language(languages_with_ocr[0])
+        ocr_engine = OcrEngine.try_create_from_language(ocr_language)
 
         buffer = Ocr.convert_to_buffer(img)
 
