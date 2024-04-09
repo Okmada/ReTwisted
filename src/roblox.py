@@ -111,6 +111,7 @@ class Roblox:
                 continue
             break
         else:
+            self._hwnd = 0
             raise Exception("Could not grab screenshot, crashed?")
 
         img = np.frombuffer(bmpstr, dtype=np.uint8)
