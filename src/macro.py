@@ -340,6 +340,7 @@ class Macro(threading.Thread):
                         self.time = time.time()
                         self.phase = 1
             except Exception as e:
+                logging.error(f"Encountered exception in phase {self.phase}")
                 logging.error(str(e))
 
                 self.time = time.time()
