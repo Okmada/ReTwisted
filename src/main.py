@@ -23,6 +23,7 @@ console_handler.setFormatter(log_formatter)
 root_logger.addHandler(console_handler)
 
 logging.getLogger('asyncio').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # START CONFIG AND INITIALIZE WEBHOOK
 config = Config()
