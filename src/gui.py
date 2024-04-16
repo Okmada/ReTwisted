@@ -9,7 +9,7 @@ import tkinter.font
 
 from macro import Data
 
-VERSION = "2.0"
+VERSION = "2.0.1"
 
 FONT = "Segoe UI"
 
