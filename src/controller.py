@@ -6,6 +6,9 @@ from typing import Callable
 
 import win32gui
 
+SM_XVIRTUALSCREEN = 76
+SM_YVIRTUALSCREEN = 77
+
 SM_CXVIRTUALSCREEN = 78
 SM_CYVIRTUALSCREEN = 79
 
@@ -91,9 +94,13 @@ class Controller(threading.Thread):
 
     @staticmethod
     def _move_to(x: int, y: int):
+        x_offset = ctypes.windll.user32.GetSystemMetrics(SM_XVIRTUALSCREEN)
+        y_offset = ctypes.windll.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+
         virtual_width = ctypes.windll.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN)
         virtual_height = ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
 
+        x, y = x - x_offset, y - y_offset
         x, y = round(x * 65535 / virtual_width), round(y * 65535 / virtual_height)
 
         extra = ctypes.c_ulong(0)
