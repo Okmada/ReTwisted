@@ -356,7 +356,7 @@ class Macro(threading.Thread):
             self.pause_event.set()
 
     def is_timedout(self):
-        time_max = int(self.config.get(["config", "timeout"]) or 0)
+        time_max = int(self.config.get(["timeout"]) or 0)
 
         if not time_max:
             return False

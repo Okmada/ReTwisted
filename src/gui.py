@@ -74,8 +74,9 @@ class Main:
         #     .pack(side=tk.TOP)
 
         # self.records_scrollframe = ScrollFrame(self.left_side)
-        
+
         self.games_scrollframe = ScrollFrame(self.right_side)
+        self.games_scrollframe.pack(fill=tk.BOTH, expand=True)
 
 class RobloxFrame:
     def __new__(self, master, macro):
@@ -165,26 +166,25 @@ class RobloxFrame:
         server_url_var.trace_add("write", write_verify_url)
         write_verify_url()
 
-class ScrollFrame:
-    def __new__(cls, master):
-        canvas = tk.Canvas(master)
+class ScrollFrame(tk.Frame):
+    def __init__(self, master, *args, **kw):
+        tk.Frame.__init__(self, master, *args, **kw)
+        canvas = tk.Canvas(self)
 
-        scrollbar = tk.Scrollbar(master, orient=tk.VERTICAL, command=canvas.yview)
+        scrollbar = tk.Scrollbar(self, orient=tk.VERTICAL, command=canvas.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        canvas.configure(yscrollcommand=scrollbar.set)
 
+        canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(fill=tk.BOTH, expand=True)
 
-        master.update()
+        self.update()
 
-        frame = tk.Frame(canvas)
-        frame.bind("<Configure>", lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
+        self.interior = tk.Frame(canvas)
+        self.interior.bind("<Configure>", lambda _, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
 
-        id = canvas.create_window((0, 0), window=frame, anchor=tk.NW, width=canvas.winfo_width()-2)
-        canvas.bind("<Configure>", lambda event: canvas.itemconfig(id, width=event.width-2))
+        id = canvas.create_window((0, 0), window=self.interior, anchor=tk.NW, width=canvas.winfo_width()-2)
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(id, width=e.width-2))
 
-        return frame
-    
 class PauseWindow:
     def __init__(self, master, config):
         self.root = tk.Toplevel(master, background="red")
@@ -233,7 +233,7 @@ class PauseWindow:
         [f() for f in self.pause_events]
 
     def start_timer(self):
-        timer_mins = int(self.config.get(["config", "resume timer"]) or 0)
+        timer_mins = int(self.config.get(["resume timer"]) or 0)
 
         if not timer_mins:
             self.timer_text.config(text="")
@@ -263,7 +263,94 @@ class PauseWindow:
         self.cancel_timer()
     
 class ConfigWindow:
-    class ConditionFrame:
+    class ConfigTemplate:
+        def __init__(self):
+            self.name = "TEMPLATE"
+
+        def _create_gui(self, master):
+            raise NotImplemented()
+        
+        def import_config(self, config, path=[]):
+            raise NotImplemented()
+        
+        def export_config(self, config, path=[]):
+            raise NotImplemented()
+
+    class Group(ConfigTemplate):
+        def __init__(self, name, childs):
+            self.name = name
+            self.childs = childs
+
+        def _create_gui(self, master):
+            tk.Label(master, text=self.name.capitalize()).pack(anchor=tk.W)
+
+            submaster = tk.Frame(master)
+            submaster.pack(anchor=tk.W, padx=(25, 0))
+
+            for child in self.childs:
+                child._create_gui(submaster)
+
+        def import_config(self, config, path=[]):
+            for child in self.childs:
+                child.import_config(config, path + [self.name])
+
+        def export_config(self, config, path=[]):
+            for child in self.childs:
+                child.export_config(config, path + [self.name])
+
+    class EntryConfig(ConfigTemplate):
+        def __init__(self, name, dtype, description, dvalue):
+            self.name = name.lower()
+            self.dtype = dtype
+            self.description = description
+            self.dvalue = dvalue
+
+            self.inpt = tk.StringVar()
+            self.inpt.trace_add("write", self._validate)
+
+        def _validate(self, *_):
+            string = self.inpt.get()
+
+            match self.dtype():
+                case int():
+                    string = "".join([ch for ch in string if ch in "0123456789"])
+
+                case float():
+                    string = "".join([ch for ch in string if ch in ".0123456789"])
+                    string = ".".join(string.split(".")[:2])
+
+            self.inpt.set(string)
+
+        def _create_gui(self, master):
+            frame = tk.Frame(master)
+            frame.pack(anchor=tk.W, pady=(0, 15))
+
+            tk.Label(frame, text=self.name.capitalize()).pack(anchor=tk.W)
+
+            tk.Label(frame, state=tk.DISABLED, text=self.description, 
+                     font=(FONT, 10), justify=tk.LEFT) \
+            .pack(anchor=tk.W)
+
+            tk.Entry(frame, textvariable=self.inpt, width=50) \
+                .pack(side=tk.LEFT, padx=(3, 0))
+            
+        def import_config(self, config, path=[]):
+            try:
+                config_value = self.dtype(config.get(path + [self.name]))
+            except:
+                config_value = self.dvalue
+
+            self.inpt.set(config_value)
+
+        def export_config(self, config, path=[]):
+            try:
+                config_value = self.dtype(self.inpt.get())
+            except:
+                config_value = self.dvalue
+
+            config.set(path + [self.name], config_value)
+
+    class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
             class Condition:
                 data_options = list(Data.FORMAT.keys())
@@ -395,135 +482,58 @@ class ConfigWindow:
 
         DESCRIPTION = "Bot stops if at least one group has all the conditions met within the group."
 
-        def __init__(self, master):
-            self.scroll_frame = ScrollFrame(master)    
+        def __init__(self, name):
+            self.name = name
 
+            self.master = None
             self._sublist = []
 
-            description = tk.Label(self.scroll_frame, state=tk.DISABLED, text=self.DESCRIPTION,
+        def _create_gui(self, master):
+            self.master = master
+
+            description = tk.Label(self.master, state=tk.DISABLED, text=self.DESCRIPTION,
                                    font=(FONT, 10), justify=tk.CENTER)
             description.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
 
             description.config(wraplength=description.winfo_width())
             description.bind('<Configure>', lambda *_: description.config(wraplength=description.winfo_width()))
 
-            tk.Button(self.scroll_frame, text="Add group", command=lambda:
-                      self.ConditionGroup(self.scroll_frame, self._sublist)) \
+            tk.Button(self.master, text="Add group", command=lambda:
+                      self.ConditionGroup(self.master, self._sublist)) \
                 .pack(fill=tk.X, side=tk.BOTTOM)
 
-        def import_config(self, config):
-            [group.frame.destroy() for group in self._sublist]
-            self._sublist = []            
+        def import_config(self, config, path=[]):
+            while self._sublist:
+                self._sublist.pop().frame.destroy()         
 
-            for subconfig in config:
-                self.ConditionGroup(self.scroll_frame, self._sublist) \
-                    .import_config(subconfig)
+            for groups in config.get(path + [self.name]):
+                self.ConditionGroup(self.master, self._sublist) \
+                    .import_config(groups)
 
-        def export_config(self):
-            return [group.export_config() for group in self._sublist]
+        def export_config(self, config, path=[]):
+            config_value = [group.export_config() for group in self._sublist]
 
-    class ConfigFrame:
-        TEMPLATE = {
-            "webhook": {
-                "url": [str, "",
-                        "Webhook url where message will be sent on successful find.\nLeave empty for no message."],
-                "role id": [str, "",
-                            "Role which will be pinged in message."],
-                "user id": [str, "",
-                            "User which will be pinged in message."]
-            },
-            "timeout": [int, 75, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."],
-            "resume timer": [int, 15, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."],
-        }
-
-        def __init__(self, master):
-            canvas = tk.Canvas(master)
-            frame = tk.Frame(canvas)
-
-            vscrollbar = tk.Scrollbar(master, orient=tk.VERTICAL, command=canvas.yview)
-            vscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-            canvas.configure(yscrollcommand=vscrollbar.set)
-
-            hscrollbar = tk.Scrollbar(master, orient=tk.HORIZONTAL, command=canvas.xview)
-            hscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-            canvas.configure(xscrollcommand=hscrollbar.set)
-
-            canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            canvas.create_window((0, 0), window=frame, anchor=tk.NW)
-
-            frame.bind("<Configure>", \
-                   lambda event, canvas=canvas: canvas.configure(scrollregion=canvas.bbox("all")))
-            
-            self._config_list = []
-            self._generateConfig(frame, self.TEMPLATE)
-            
-        def _generateConfig(self, master, template, path=[]):
-            if path:
-                last = path[-1].capitalize()
-
-                master = tk.Frame(master)
-                master.pack(anchor=tk.W, padx=(max(0, (len(path) - 1) * 25), 0))
-
-                tk.Label(master, text=last).pack(anchor=tk.W)
-
-            match template:
-                case dict():
-                    for key, item in template.items():
-                        self._generateConfig(master, item, path=path + [key])
-                case list():
-                    data_type, default, desc, *_ = template
-
-                    inpt = tk.StringVar()
-                    inpt.dtype = data_type
-                    inpt.default = default
-                    
-                    def validate(*e):
-                        if data_type == int:
-                            inpt.set(''.join(c for c in inpt.get() if c in "0123456789"))
-
-                    inpt.trace_add("write", validate)
-
-                    self._config_list.append((path, inpt))
-
-                    tk.Label(master, state=tk.DISABLED, text=desc, font=(FONT, 10), 
-                             anchor=tk.W, justify=tk.LEFT) \
-                        .pack(fill=tk.X, side=tk.TOP, padx=(3, 0))
-
-                    tk.Entry(master, textvariable=inpt, width=50) \
-                        .pack(pady=(0, 15), side=tk.LEFT, padx=(3, 0))
-                    
-        def import_config(self, config):
-            for path, inpt in self._config_list:
-                inpt.set(self._get_in_dict(config, path) or inpt.default)
-
-        def export_config(self):
-            config = {}
-            for path, inpt in self._config_list:
-                tmp = config
-                for i, arg in zip(range(len(path))[::-1], path):
-                    if i != 0:
-                        if arg not in tmp:
-                            tmp[arg] = {}
-                        tmp = tmp[arg]
-                    else:
-                        tmp[arg] = inpt.get()
-            return config
-
-        @staticmethod
-        def _get_in_dict(config, path):
-            tmp = config
-            for arg in path:
-                if arg in tmp:
-                    tmp = tmp[arg]
-                    continue
-                return None
-            return tmp
+            config.set(path + [self.name], config_value)
 
     def __init__(self, master, config) -> None:
         self.root= tk.Toplevel(master)
         self.root.withdraw()
 
         self.config = config
+
+        self.left_config = [
+            self.Group("webhook", [
+                self.EntryConfig("url", str, "Webhook url where message will be sent on successful find.\nLeave empty for no message.", ""), 
+                self.EntryConfig("role id", str, "Role which will be pinged in message.", ""),
+                self.EntryConfig("user id", str, "User which will be pinged in message.", "")
+            ]), 
+            self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature.", 75), 
+            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature.", 15)
+        ]
+
+        self.right_config = [
+            self.ConditionConfig("conditions")
+        ]
 
         self.__setup()
 
@@ -543,23 +553,25 @@ class ConfigWindow:
         tk.Button(bottom_frame, text="Close", command=lambda: self.close()) \
             .pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=5, pady=5)
         
-        left_side = tk.Frame(self.root)
+        # LEFT SIDE
+        left_side = ScrollFrame(self.root)
         left_side.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         left_side.pack_propagate(False)
+        
+        for config_widget in self.left_config:
+            config_widget._create_gui(left_side.interior)
 
-        right_side = tk.Frame(self.root)
+        # RIGHT SIDE
+        right_side = ScrollFrame(self.root)
         right_side.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         right_side.pack_propagate(False)
 
-        # LEFT SIDE
-        self.config_frame = self.ConfigFrame(left_side)
-
-        # RIGHT SIDE
-        self.condition_frame = self.ConditionFrame(right_side)
+        for config_widget in self.right_config:
+            config_widget._create_gui(right_side.interior)
 
     def open(self):
-        self.config_frame.import_config(self.config.get(["config"]) or {})
-        self.condition_frame.import_config(self.config.get(["conditions"]) or [])
+        for setting in self.left_config + self.right_config:
+            setting.import_config(self.config)
 
         self.root.deiconify()
 
@@ -569,5 +581,5 @@ class ConfigWindow:
     def close_and_save(self):
         self.close()
 
-        self.config.set(["config"], self.config_frame.export_config())
-        self.config.set(["conditions"], self.condition_frame.export_config())
+        for setting in self.left_config + self.right_config:
+            setting.export_config(self.config)

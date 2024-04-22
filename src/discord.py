@@ -19,12 +19,12 @@ class Webhook:
         self.config = config
 
     def send(self, data, data_image, code_image):
-        url = self.config.get(["config", "webhook", "url"])
+        url = self.config.get(["webhook", "url"])
         if not url:
             return
         
-        role_id = self.config.get(["config", "webhook", "role id"])
-        user_id = self.config.get(["config", "webhook", "user id"])
+        role_id = self.config.get(["webhook", "role id"])
+        user_id = self.config.get(["webhook", "user id"])
 
         payload = {
             "username": "Re:Twisted",
