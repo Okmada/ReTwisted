@@ -278,7 +278,7 @@ class ConfigWindow:
 
     class Group(ConfigTemplate):
         def __init__(self, name, childs):
-            self.name = name
+            self.name = name.lower()
             self.childs = childs
 
         def _create_gui(self, master):
@@ -483,7 +483,7 @@ class ConfigWindow:
         DESCRIPTION = "Bot stops if at least one group has all the conditions met within the group."
 
         def __init__(self, name):
-            self.name = name
+            self.name = name.lower()
 
             self.master = None
             self._sublist = []
