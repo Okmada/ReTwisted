@@ -22,7 +22,7 @@ class Roblox:
         self._name = name
         self._hwnd = 0
             
-    def start_roblox(self, place_id, server=0):
+    def start_roblox(self, place_id, server=""):
         arg = f"roblox://placeId={place_id}" + (f"&linkCode={server}" if server else "")
 
         match self._name:

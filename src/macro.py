@@ -66,7 +66,7 @@ class Macro(threading.Thread):
 
         self._enabled = bool(self.config.get([self.roblox.name, "enabled"]) or False)
         self._lite_mode = bool(self.config.get([self.roblox.name, "litemode"]) or False)
-        self._server = int(self.config.get([self.roblox.name, "server"]) or 0)
+        self._server = str(self.config.get([self.roblox.name, "server"]) or "")
 
         self.start()
 
@@ -376,7 +376,7 @@ class Macro(threading.Thread):
         self.config.set([self.roblox.name, "litemode"], value)
 
     def set_server(self, value):
-        value = int(value or 0)
+        value = str(value or "")
 
         self._server = value
         self.config.set([self.roblox.name, "server"], value)

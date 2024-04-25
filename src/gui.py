@@ -157,7 +157,7 @@ class RobloxFrame:
             if code:
                 server_url_entry.configure(highlightbackground="#54de01", highlightcolor="#54de01")
 
-                macro.set_server(int(code.group(1)))
+                macro.set_server(str(code.group(1)))
             else:
                 server_url_entry.configure(highlightbackground="red", highlightcolor="red")
 
