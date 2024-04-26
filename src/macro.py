@@ -236,6 +236,7 @@ class Macro(threading.Thread):
                         side_data_mask = cv2.bitwise_xor(cv2.inRange(side_data, GRAY, GRAY), data_masks[1])
 
                         side_data_contours, _ = cv2.findContours(side_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+                        side_data_contours = sorted(side_data_contours, key=lambda e: cv2.contourArea(e), reverse=True)[:5]
                         side_data_contours = sorted(side_data_contours, key=lambda e: sum(self._get_contour_center(e)))
 
                         CUT_COEFF = [
@@ -255,7 +256,7 @@ class Macro(threading.Thread):
                             0, # VTP
                         ]
 
-                        for cont, unit_coef in zip(main_data_contours + [side_data_contours[i] for i in [0, 1, 3, 4]], CUT_COEFF, strict=True):
+                        for cont, unit_coef in zip(main_data_contours + side_data_contours[:4], CUT_COEFF, strict=True):
                             cont_img = self._crop_contour(data, cont)
 
                             color_text_mask = np.min(cont_img, axis=2)
