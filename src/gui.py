@@ -336,7 +336,9 @@ class ConfigWindow:
             
         def import_config(self, config, path=[]):
             try:
-                config_value = self.dtype(config.get(path + [self.name]))
+                config_value = config.get(path + [self.name])
+
+                config_value = self.dtype(config_value) if config_value != None else self.dvalue
             except:
                 config_value = self.dvalue
 
@@ -506,7 +508,7 @@ class ConfigWindow:
             while self._sublist:
                 self._sublist.pop().frame.destroy()         
 
-            for groups in config.get(path + [self.name]):
+            for groups in config.get(path + [self.name]) or []:
                 self.ConditionGroup(self.master, self._sublist) \
                     .import_config(groups)
 
