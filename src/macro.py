@@ -400,16 +400,16 @@ class Macro(threading.Thread):
     def check_conditions(self, data):
         for group in self.config.get(["conditions"]) or []:
             for condition in group:
-                what, comparision_type, expected_data = condition
+                what, comparison_type, expected_data = condition
 
                 real_data = data[what]
                 expected_data = type(real_data)(expected_data)
 
-                if comparision_type == "==" and real_data != expected_data:
+                if comparison_type == "==" and real_data != expected_data:
                     break
-                elif comparision_type == ">=" and real_data < expected_data:
+                elif comparison_type == ">=" and real_data < expected_data:
                     break
-                elif comparision_type == "<=" and real_data > expected_data:
+                elif comparison_type == "<=" and real_data > expected_data:
                     break
             else:
                 return True
