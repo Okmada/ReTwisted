@@ -64,9 +64,9 @@ class Macro(threading.Thread):
         self._data_callbacks = []
         self._pause_callbacks = []
 
-        self._enabled = bool(self.config.get([self.roblox.name, "enabled"]) or False)
-        self._lite_mode = bool(self.config.get([self.roblox.name, "litemode"]) or False)
-        self._server = str(self.config.get([self.roblox.name, "server"]) or "")
+        self._enabled = bool(self.config.get([self.roblox.name, "enabled"], False))
+        self._lite_mode = bool(self.config.get([self.roblox.name, "litemode"], False))
+        self._server = str(self.config.get([self.roblox.name, "server"], ""))
 
         self.start()
 
@@ -357,7 +357,7 @@ class Macro(threading.Thread):
             self.pause_event.set()
 
     def is_timedout(self):
-        time_max = int(self.config.get(["timeout"]) or 0)
+        time_max = int(self.config.get(["timeout"], 0))
 
         if not time_max:
             return False
@@ -398,7 +398,7 @@ class Macro(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data):
-        for group in self.config.get(["conditions"]) or []:
+        for group in self.config.get(["conditions"], []):
             for condition in group:
                 what, comparison_type, expected_data = condition
 

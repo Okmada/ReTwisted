@@ -15,13 +15,13 @@ class Config:
             json.dump(self.__config, file, indent=4)
             file.close()
 
-    def get(self, path):
+    def get(self, path, dvalue=None):
         tmp = self.__config
         for arg in path:
             if arg in tmp:
                 tmp = tmp[arg]
                 continue
-            return None
+            return dvalue
         return tmp
     
     def set(self, path, value):
