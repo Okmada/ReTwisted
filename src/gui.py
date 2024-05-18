@@ -130,18 +130,6 @@ class RobloxFrame:
         tk.Checkbutton(enabled_frame, variable=enabled_var) \
             .pack(side=tk.RIGHT, anchor=tk.W, expand=True)
 
-        lite_mode_frame = tk.Frame(info_frame_bottom)
-        lite_mode_frame.pack(fill=tk.X, side=tk.TOP)
-
-        lite_mode_var = tk.IntVar(value=macro.get_lite_mode())
-
-        lite_mode_var.trace_add("write", lambda *e: macro.set_lite_mode(bool(lite_mode_var.get())))
-
-        tk.Label(lite_mode_frame, text="Lite mode") \
-            .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
-        tk.Checkbutton(lite_mode_frame, variable=lite_mode_var) \
-            .pack(side=tk.RIGHT, anchor=tk.W, expand=True)
-    
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)
 

@@ -13,19 +13,22 @@ PLACE_ID = 6161235818
 class Data:
     FORMAT = {
         "TEMPERATURE": int,
-        "DEWPOINT": int,
         "CAPE": int,
-        "3CAPE": int,
         "0-3KM LAPSE RATES": float,
-        "3-6KM LAPSE RATES": float,
         "PWAT": float,
-        "700-500mb RH": int,
         "SURFACE RH": int,
 
+        "DEWPOINT": int,
+        "3CAPE": int,
+        "3-6KM LAPSE RATES": float,
         "SRH": int,
-        "STORM MOTION": int,
+        "700-500mb RH": int,
+
         "STP": int,
         "VTP": int,
+
+        # "ANGLE": int,
+        # "STORM MOTION": int,
 
         "DAY 1": str,
         "DAY 2": str,
@@ -41,11 +44,30 @@ class Data:
         return data_type(value)
 
     def __new__(cls, *data) -> None:
-        assert len(data) == len(cls.FORMAT)
+        assert len(data) == len(cls.FORMAT), "Invalid data len"
 
         return {name: cls._to_data_type(value, data_type) 
                 for (name, data_type), value 
                 in zip(cls.FORMAT.items(), data, strict=True)}
+    
+class Colors:
+    WHITE = (255, 255, 255)
+    GREEN = (127, 255, 170)
+
+    GRAY_0 = (27, 23, 22)
+    GRAY_1 = (34, 31, 28)
+    GRAY_2 = (45, 38, 37)
+
+    GRAYS = (GRAY_0, GRAY_1, GRAY_2)
+
+    DAYS = {
+        "HIGH": ((255, 127, 255), (200, 102, 198), (146, 79, 142)),
+        "MRGL": ((160, 214, 6), (128, 167, 10), (98, 122, 17)),
+        "SLGT": ((64, 198, 255), (56, 155, 198), (50, 114, 142)),
+        "TSTM": ((192, 232, 192), (153, 181, 151), (114, 131, 110)),
+        "MDT": ((79, 50, 186), (67, 44, 146), (58, 40, 107)),
+        "ENH": ((83, 146, 249), (70, 116, 193), (60, 88, 139)),
+    }
 
 class Macro(threading.Thread):
     def __init__(self, roblox, controller, config, webhook):
@@ -65,7 +87,6 @@ class Macro(threading.Thread):
         self._pause_callbacks = []
 
         self._enabled = bool(self.config.get([self.roblox.name, "enabled"], False))
-        self._lite_mode = bool(self.config.get([self.roblox.name, "litemode"], False))
         self._server = str(self.config.get([self.roblox.name, "server"], ""))
 
         self.start()
@@ -92,11 +113,7 @@ class Macro(threading.Thread):
 
                     case 2:
                         # WAIT FOR TWISTED TO LOAD INTO MENU
-                        GREEN = np.array([127, 255, 170])
-                        RED = np.array([127, 85, 255])
-
-                        loaded = cv2.inRange(img, GREEN, GREEN).any() and cv2.inRange(img, RED, RED).any()
-                        if loaded:
+                        if np.all(img == Colors.GREEN, axis=2).any():
                             time.sleep(1)
                             self.phase += 1
                         
@@ -104,212 +121,206 @@ class Macro(threading.Thread):
                         # NAVIGATE MENU
                         slice = img[:, :int(0.22 * img.shape[1])]
 
-                        GREEN = np.array([127, 255, 170])
-                        RED = np.array([127, 85, 255])
-
-                        green_mask = cv2.inRange(slice, GREEN, GREEN)
-                        red_mask = cv2.inRange(slice, RED, RED)
+                        green_mask = np.all(slice == Colors.GREEN, axis=2).astype(np.uint8) * 255
 
                         green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-                        red_contours, _ = cv2.findContours(red_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
                         green_contour = max(green_contours, key=cv2.contourArea)
-                        red_contour = sorted(red_contours, key=cv2.contourArea, reverse=True)[2]
 
                         play_button = self._get_contour_center(green_contour)
-                        lite_mode_button = self._get_contour_center(red_contour)
-
-                        if self._lite_mode:
-                            self.controller.async_click(self.roblox.hwnd, lite_mode_button)
 
                         self.controller.async_click(self.roblox.hwnd, play_button)
+
+                        time.sleep(3)
 
                         self.phase += 1
 
                     case 4:
                         # WAIT TO LOAD INTO GAME
-                        GRAY = np.array([25]*3)
-
                         H, W, *_ = img.shape
-                        slice = img[round(H*0.96-3):round(H*0.96+3), round(W*0.962-3):round(W*0.962+3)]
 
-                        loaded = not cv2.inRange(slice, GRAY, GRAY).all()
-                        if loaded:
-                            time.sleep(1.5)
+                        rect_cutout = img[:, W//2 - min(H, W)//2:W//2 + min(H, W)//2]
+
+                        loaded_game = np.all(img[118, W//2 - 62] == Colors.WHITE)
+                        loaded_select = .5 < np.count_nonzero(np.argmax(rect_cutout, axis=2) == 1) / np.multiply(*rect_cutout.shape[:2])
+
+                        if loaded_game or loaded_select:
+                            logging.debug(f"{loaded_game=}")
+                            logging.debug(f"{loaded_select=}")
+
+                            if loaded_select:
+                                # SELECT PRIOR
+                                time.sleep(.5)
+
+                                point = (round(W * 0.5 + 3), round(H * 0.69 + 3))
+                                self.controller.async_click(self.roblox.hwnd, point)
+                                self.controller.sync_click(self.roblox.hwnd, point)
+
+                                time.sleep(1)
+
+                                point = (round(W * 0.5 + H * 0.12 + 3), round(H * 0.45 + 10))
+                                self.controller.async_click(self.roblox.hwnd, point)
+                                self.controller.sync_click(self.roblox.hwnd, point)
+
+                                time.sleep(5)
+
+                            time.sleep(1)
+
                             self.phase += 1
 
                     case 5:
-                        # SELECT PRIOR IF GRAY NOT DETECTED
-                        if not cv2.inRange(img, GRAY, GRAY).any():
-                            point = (round(W * 0.5 + 3), round(H * 0.7 + 4))
-                            self.controller.async_click(self.roblox.hwnd, point)
-                            self.controller.sync_click(self.roblox.hwnd, point)
-
-                            time.sleep(.5)
-
-                            point = (round(W * 0.5 + H * 0.122 - 5.3), round(H * 0.4705 + 15))
-                            self.controller.async_click(self.roblox.hwnd, point)
-                            self.controller.sync_click(self.roblox.hwnd, point)
-
-                            time.sleep(3)
-
-                        self.phase += 1
-
-                    case 6:
                         # CLOSE CHAT
-                        GRAY = np.array([50]*3)
-                        WHITE = np.array([255]*3)
+                        chat_slice = img[33:77, 64:104]
+                        ratio = np.count_nonzero(np.all(chat_slice == Colors.WHITE, axis=2)) / np.multiply(*chat_slice.shape[:2])
 
-                        chat_slice = img[33:73, 64:104]
-                        chat_contours, _ = cv2.findContours(cv2.inRange(chat_slice, GRAY, GRAY), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                        chat_contours = sorted(chat_contours, key=cv2.contourArea)
-
-                        chat_slice_mask = cv2.drawContours(np.zeros(chat_slice.shape[:2], np.uint8), [chat_contours[0]], -1, 255, -1)
-                        chat_mask = cv2.inRange(chat_slice, WHITE, WHITE)
-                        
-                        if np.count_nonzero(cv2.bitwise_and(chat_slice_mask, chat_mask)) / np.count_nonzero(chat_slice_mask) > .25:
-                            self.controller.async_click(self.roblox.hwnd, (84, 53))
+                        if .17 < ratio < .25:
+                            self.controller.sync_click(self.roblox.hwnd, (84, 53))
 
                         # OPEN DATA MENU
                         H, W, *_ = img.shape
                         
-                        self.controller.async_click(self.roblox.hwnd, (W//2, 95))
-
-                        self.controller.sync_click(self.roblox.hwnd, (W//2 - 63, 95))
+                        self.controller.sync_click(self.roblox.hwnd, (W//2 - 62, 118))
 
                         time.sleep(1)
 
                         self.phase += 1
 
-                    case n if n in [7, 8]:
-                        # CROP TO DATA WINDOW
-                        H, W, *_ = img.shape
-
-                        slice = img[129:round(0.465 * H + 120), round(0.28 * W):round(0.72 * W)]
-
-                        # MASK DATA WINDOW
-                        GRAY = np.array([50]*3)
-
-                        gray_contours, _ = cv2.findContours(cv2.inRange(slice, GRAY, GRAY), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                        gray_contours = sorted(gray_contours, key=cv2.contourArea, reverse=True)[:3]
-
-                        if n == 7:
-                            # COPY DATA and create individual masks
-                            data = slice.copy()
-                            data_mask = cv2.drawContours(np.zeros(slice.shape[:2], np.uint8), gray_contours, -1, 255, -1)
-                            data_masks = [cv2.drawContours(np.zeros(slice.shape[:2], np.uint8), [c], -1, 255, -1) for c in gray_contours]
-
-                            # MASK AND COPY CODE
-                            code = img[33:81, 108:round(0.0646 * W + 114)].copy()
-                            code_contours, _ = cv2.findContours(cv2.inRange(code, GRAY, GRAY), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                            code_contours = sorted(code_contours, key=cv2.contourArea, reverse=True)[:1]
-
-                            code_mask = np.zeros(code.shape[:2], np.uint8)
-                            cv2.drawContours(code_mask, code_contours, -1, 255, -1)
-
-                            # CLICK HODO BUTTON
-                            self.controller.sync_click(self.roblox.hwnd, (round(W * 0.6253), round(H * 0.4387 + 111)))
-                            time.sleep(.75)
-
-                        elif n == 8:
-                            # COPY HODO IMAGE
-                            hodograph = slice.copy()
-
-                            hodograph_mask = np.zeros(slice.shape[:2], np.uint8)
-                            cv2.drawContours(hodograph_mask, [gray_contours[1]], -1, 255, -1)
-
-                        self.phase += 1
-
-                    case 9:
-                        GRAY = np.array([50]*3)
-
+                    case 6:
                         data_output = []
 
+                        # GET CONTOURS OF WINDOWS
+                        grays_mask = np.logical_or.reduce([np.all(img == gray, axis=2) for gray in Colors.GRAYS]).astype(np.uint8) * 255
+
+                        color_contours, _ = cv2.findContours(grays_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        color_contours = max(color_contours, key=cv2.contourArea)
+
+                        data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [color_contours], -1, 255, -1)
+
+                        sub_data_masks = np.bitwise_and(data_mask, np.all(img!=Colors.GRAY_2, axis=2)).astype(np.uint8) * 255
+                        sub_data_contours, _ = cv2.findContours(sub_data_masks, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        sub_data_contours = sorted(sub_data_contours, key=cv2.contourArea, reverse=True)
+
+                        sub_data_contours, composites_contour, days_contours = sub_data_contours[:3], sub_data_contours[4], sub_data_contours[5:8]
+
+                        sub_data_contours.sort(key=lambda e: self._get_contour_center(e)[0])
+                        days_contours.sort(key=lambda e: self._get_contour_center(e)[0])
+
                         # THERMOS
-                        main_data = self._mask_image(data, data_masks[0])
-                        main_data_mask = cv2.bitwise_xor(cv2.inRange(main_data, GRAY, GRAY), data_masks[0])
-                        
-                        main_data_contours, _ = cv2.findContours(main_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-                        main_data_contours = sorted(main_data_contours, key=lambda e: sum(self._get_contour_center(e)))
-
-                        side_data = self._mask_image(data, data_masks[1])
-                        side_data_mask = cv2.bitwise_xor(cv2.inRange(side_data, GRAY, GRAY), data_masks[1])
-
-                        side_data_contours, _ = cv2.findContours(side_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-                        side_data_contours = sorted(side_data_contours, key=lambda e: cv2.contourArea(e), reverse=True)[:5]
-                        side_data_contours = sorted(side_data_contours, key=lambda e: sum(self._get_contour_center(e)))
-
-                        CUT_COEFF = [
+                        unit_coef_iterator = iter([
                             0.7, # TEMPERATURE
-                            0.7,  # DEWPOINT
-                            2, # CAPE
-                            2, # 3CAPE
+                            2.5, # CAPE
                             2.6, # 0-3KM LAPSES RATES
-                            2.6, # 3-6KM LAPSES RATES
                             1.5, # PWAT
-                            1.2, # 700-500mb RH
-                            1.2, # SURFACE RH
+                            0.7, # SURFACE RH
 
-                            2.5, # SRH
-                            0, # STORM MOTION
-                            0, # STP
-                            0, # VTP
-                        ]
+                            0.7, # DEWPOINT
+                            2.5, # 3CAPE
+                            2.6, # 3-6KM LAPSES RATES
+                            3, # SRH
+                            0.7, # 700-500mb RH
+                        ])
 
-                        for cont, unit_coef in zip(main_data_contours + side_data_contours[:4], CUT_COEFF, strict=True):
-                            cont_img = self._crop_contour(data, cont)
+                        for contour in sub_data_contours[:2]:
+                            contour_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [contour], -1, 255, -1)
+                            color_mask = cv2.bitwise_and(np.all(img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255, contour_mask)
 
-                            color_text_mask = np.min(cont_img, axis=2)
+                            color_contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            color_contour = max(color_contours, key=cv2.contourArea)
+                            filled_color_mask = cv2.drawContours(np.zeros(color_mask.shape[:2], np.uint8), [color_contour], -1, 255, -1)
 
-                            cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
+                            text_mask = cv2.bitwise_and(filled_color_mask, cv2.bitwise_not(color_mask))
 
-                            color_text = np.where(cont_img - color_text_mask > 0, cont_img, 0)
+                            rows_mask = np.zeros(text_mask.shape[:2], np.uint8)
+                            rows_mask[np.where(text_mask.max(axis=1)>0)[0]] = 255
+                            rows_mask = cv2.bitwise_and(filled_color_mask, rows_mask)
 
-                            if color_text.any() > 0:
-                                stretched_color_text = (color_text * (255 / np.max(color_text))).astype(np.uint8)
+                            rows_contours, _ = cv2.findContours(rows_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-                                cont_img = np.where(stretched_color_text > 0, stretched_color_text, cont_img)
+                            for row_contour in sorted(rows_contours, key=lambda e: self._get_contour_center(e)[1]):
+                                cont_img = self._extract_contour(img, row_contour)
+                                cont_img[np.where(np.all(cont_img == Colors.GRAY_0, axis=2))] = [0]
 
-                            mask = cv2.threshold(cont_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-                            cont_img = np.where(mask, cont_img, 0)
+                                color_text_mins = np.min(cont_img, axis=2)
 
-                            cont_img = (cont_img * (255 / np.max(cont_img))).astype(np.uint8)
+                                cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
 
-                            cont_img = self._crop_image(cont_img)
+                                color_text = cont_img - color_text_mins
+                                color_text = (color_text * (255 / np.max(color_text))).astype(np.uint8)
+                                color_text[np.where(color_text <= 8)] = 0
 
-                            if unit_coef:
-                                cont_img = cont_img[:, :-round(unit_coef * cont_img.shape[0])]
+                                cont_img[np.where(color_text)] = 0
+                                cont_img[np.where(cont_img <= 32)] = 0
+                                cont_img = self._remove_dots(cont_img)
+                                cont_img = self._crop_image(cont_img, top=False, bottom=False)
 
-                            SCALE = 340 / cont_img.shape[0]
+                                color_text = self._crop_image(color_text, top=False, bottom=False)
+                                color_text = color_text[:, :-round(next(unit_coef_iterator) * color_text.shape[0])]
 
-                            cont_img = cv2.copyMakeBorder(cont_img, *[int(cont_img.shape[0] * 0.35)] * 4, cv2.BORDER_CONSTANT)
-                            new_dims = [round(dim * SCALE) for dim in cont_img.shape[:2]][::-1]
-                            cont_img = cv2.resize(cont_img, new_dims, interpolation=cv2.INTER_LINEAR)
+                                merged_img = np.concatenate([cont_img, 
+                                                             np.zeros([cont_img.shape[0]]*2, np.uint8), 
+                                                             color_text], axis=1)
+                                merged_img = self._upscale_for_ocr(merged_img)
 
-                            data_output.append(self._read_number(cont_img))
+                                number = self._read_number(merged_img)
+                                data_output.append(number)
+
+                        # COMPOSITES
+                        composites = self._extract_contour(img, composites_contour)
+                        composites[np.where(np.all(composites == Colors.GRAY_0, axis=2))] = [0]
+
+                        composites = cv2.cvtColor(composites, cv2.COLOR_BGR2GRAY)
+                        composites[np.where(composites < 40)] = 0
+
+                        stp_img = self._crop_image(composites[:, :composites.shape[1]//2])
+                        vtp_img = self._crop_image(composites[:, composites.shape[1]//2:])
+
+                        stp_img = self._remove_dots(stp_img)
+                        vtp_img = self._remove_dots(vtp_img)
+
+                        stp_img = self._upscale_for_ocr(stp_img)
+                        vtp_img = self._upscale_for_ocr(vtp_img)
+
+                        data_output.append(self._read_number(stp_img))
+                        data_output.append(self._read_number(vtp_img))
+
+                        # ANGLE STORM MOTION
+                        # hodo_img = self._extract_contour(img, sub_data_contours[2])
+
+                        # wind_mask = np.all(hodo_img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255
+                        
+                        # wind_contours, _ = cv2.findContours(wind_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        # wind_contours = [c for c in wind_contours if cv2.contourArea(c) > 10]
+
+                        # wind_img = self._extract_contour(hodo_img, cv2.convexHull(np.vstack(wind_contours)))
+
+                        # thresh_img = np.where(wind_img == 255, wind_img, 0)
+
+                        # rows_mask = np.zeros(thresh_img.shape[:2], np.uint8)
+                        # rows_mask[np.where(thresh_img.max(axis=1) > 0)[0]] = 255
+
+                        # rows_contours, _ = cv2.findContours(rows_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                        # for row_contour in sorted(rows_contours, key=lambda e: self._get_contour_center(e)[1]):
+                        #     row_img = self._extract_contour(wind_img, row_contour)
+                        #     row_img = cv2.cvtColor(row_img, cv2.COLOR_BGR2GRAY)
+
+                        #     row_img = np.where(row_img > 150, row_img, 0)
+
+                        #     row_img = self._remove_dots(row_img)
+                        #     row_img = self._crop_image(row_img)
+                        #     row_img = self._upscale_for_ocr(row_img)
+
+                        #     number = self._read_number(row_img)
+
+                        #     data_output.append(number)
 
                         # DAYS
-                        top_data = self._mask_image(data, data_masks[2])
-                        top_data_mask = cv2.bitwise_xor(cv2.inRange(top_data, GRAY, GRAY), data_masks[2])
+                        for i, cont in enumerate(days_contours):
+                            cont_img = self._extract_contour(img, cont)
 
-                        top_data_contours, _ = cv2.findContours(top_data_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-                        top_data_contours = sorted(top_data_contours, key=lambda e: sum(self._get_contour_center(e)))
-
-                        COLORS = {
-                            (255, 127, 255): "HIGH",
-                            (127, 197, 127): "MRGL",
-                            (127, 246, 246): "SLGT",
-                            (192, 232, 192): "TSTM",
-                            (127, 127, 230): "MDT",
-                            (127, 194, 230): "ENH"
-                        }
-
-                        for cont in top_data_contours[:3]:
-                            cont_img = self._crop_contour(data, cont)
-
-                            for color, value in COLORS.items():
-                                if np.count_nonzero(cv2.inRange(cont_img, color, color)):
-                                    data_output.append(value)
+                            for day_type, colors in Colors.DAYS.items():
+                                if np.all(cont_img == colors[i], axis=2).any():
+                                    data_output.append(day_type)
                                     break
 
                             else:
@@ -325,16 +336,18 @@ class Macro(threading.Thread):
                         if self.check_conditions(data_formated):
                             logging.info("Conditions passed")
 
-                            code_trans = self._crop_image(self._mask_transparent(code, code_mask))
+                            code_row = img[40:90]
+                            code_row_mask = np.all(code_row == Colors.GRAY_2, axis=2).astype(np.uint8) * 255
 
-                            data_trans = self._crop_image(self._mask_transparent(data, data_mask))
-                            
-                            hodograph_trans = self._crop_image(self._mask_transparent(hodograph, hodograph_mask))
-                            hodograph_trans = np.concatenate((np.zeros([data_trans.shape[0] - hodograph_trans.shape[0], hodograph_trans.shape[1], 4]), hodograph_trans), axis=0)
+                            code_contour, _ = cv2.findContours(code_row_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            code_contour = min(code_contour, key=lambda e: self._get_contour_center(e)[0])
 
-                            joined_image = np.concatenate((data_trans, np.zeros((data_trans.shape[0], 10, 4)), hodograph_trans), axis=1)
+                            code_mask = cv2.drawContours(np.zeros(code_row.shape[:2], np.uint8), [code_contour], -1, 255, -1)
+                            code_trans = self._crop_image(self._mask_transparent(code_row, code_mask))
 
-                            self.webhook.send(data=data_formated, code_image=code_trans, data_image=joined_image)
+                            data_trans = self._crop_image(self._mask_transparent(img, data_mask))
+
+                            self.webhook.send(data=data_formated, code_image=code_trans, data_image=data_trans)
 
                             [f() for f in self._pause_callbacks]
 
@@ -370,12 +383,6 @@ class Macro(threading.Thread):
         self._enabled = value
         self.config.set([self.roblox.name, "enabled"], value)
 
-    def set_lite_mode(self, value):
-        value = bool(value or False)
-
-        self._lite_mode = value
-        self.config.set([self.roblox.name, "litemode"], value)
-
     def set_server(self, value):
         value = str(value or "")
 
@@ -384,9 +391,6 @@ class Macro(threading.Thread):
 
     def get_enabled(self):
         return self._enabled
-
-    def get_lite_mode(self):
-        return self._lite_mode
 
     def get_server(self):
         return self._server
@@ -423,12 +427,17 @@ class Macro(threading.Thread):
         return (center_X, center_Y)
 
     @staticmethod
-    def _crop_image(image):
-        non_empty_columns = np.where(image.max(axis=0)>0)[0]
-        non_empty_rows = np.where(image.max(axis=1)>0)[0]
+    def _crop_image(image, top=True, bottom=True, left=True, right=True):
+        H, W, *_ = image.shape
 
-        cropBox = (min(non_empty_rows), max(non_empty_rows), min(non_empty_columns), max(non_empty_columns))
-        return image[cropBox[0]:cropBox[1]+1, cropBox[2]:cropBox[3]+1]
+        non_empty_columns = np.where(image.max(axis=0) > 0)[0]
+        non_empty_rows = np.where(image.max(axis=1) > 0)[0]
+
+        crop_box = (min(non_empty_rows) if top else 0, 
+                   max(non_empty_rows)+1 if bottom else H, 
+                   min(non_empty_columns) if left else 0, 
+                   max(non_empty_columns)+1 if right else W)
+        return image[crop_box[0]:crop_box[1], crop_box[2]:crop_box[3]]
 
     @staticmethod
     def _mask_transparent(image, mask):
@@ -440,18 +449,49 @@ class Macro(threading.Thread):
         return transparent_image
 
     @staticmethod
+    def _upscale_for_ocr(image):
+        SCALE = 325 / image.shape[0]
+
+        image = cv2.copyMakeBorder(image, *[int(image.shape[0] * 0.35)] * 4, cv2.BORDER_CONSTANT)
+        new_dims = [round(dim * SCALE) for dim in image.shape[:2]][::-1]
+        image = cv2.resize(image, new_dims, interpolation=cv2.INTER_LINEAR)
+
+        return image
+
+    @staticmethod
     def _read_number(image):
         text = Ocr.ocr(image)
+
+        text = text.replace("Ø", "0")
+        text = text.replace("ø", "0")
+        text = text.replace("l", "1")
 
         nums = re.findall("([0-9]+[.]{1}[0-9]+|[0-9]+)", text)
 
         return nums[-1] if nums else "0"
 
     @staticmethod
-    def _mask_image(image, mask):
-        return cv2.bitwise_and(image, image, mask=mask)
+    def _extract_contour(image, contour):
+        X, Y, W, H = cv2.boundingRect(contour)
+
+        cutout = np.zeros([H, W] + list(image.shape[2:]), np.uint8)
+        cv2.drawContours(cutout, [contour - [X, Y]], -1, [255]*3, -1)
+        points = np.where(np.all(cutout, axis=2))
+
+        cutout[points] = image[tuple(np.dstack((np.dstack(points) + [Y, X])[0])[0])]
+
+        return cutout
 
     @staticmethod
-    def _crop_contour(image, contour):
-        x, y, w, h = cv2.boundingRect(contour)
-        return image[y:y+h, x:x+w]
+    def _remove_dots(image):
+        H, W, *_ = image.shape
+        to_delete = []
+
+        contours, _ = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for contour in contours:
+            cont_x, cont_y, cont_w, cont_h = cv2.boundingRect(contour)
+
+            if 0.5 > cont_h / H:
+                to_delete += range(cont_x, cont_x + cont_w)
+
+        return np.delete(image, to_delete, axis=1)
