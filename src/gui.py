@@ -338,6 +338,39 @@ class ConfigWindow:
 
             config.set(path + [self.name], config_value)
 
+    class BoolConfig(ConfigTemplate):
+        options = ["Disabled", "Enabled"] # ["False", "True"]
+
+        def __init__(self, name, description, dvalue):
+            self.name = name.lower()
+            self.description = description
+            self.dvalue = int(bool(dvalue))
+
+            self.inpt = tk.StringVar()     
+
+        def _create_gui(self, master):
+            frame = tk.Frame(master)
+            frame.pack(anchor=tk.W, pady=(0, 15))
+
+            tk.Label(frame, text=self.name.capitalize()).pack(anchor=tk.W)
+
+            tk.Label(frame, state=tk.DISABLED, text=self.description, 
+                     font=(FONT, 10), justify=tk.LEFT) \
+                .pack(anchor=tk.W)
+
+            tk.OptionMenu(frame, self.inpt, *self.options) \
+                .pack(side=tk.LEFT, padx=(3, 0))
+            
+        def import_config(self, config, path=[]):
+            config_value = int(bool(config.get(path + [self.name], self.dvalue)))
+
+            self.inpt.set(self.options[config_value])
+        
+        def export_config(self, config, path=[]):
+            config_value = self.options.index(self.inpt.get())
+
+            config.set(path + [self.name], bool(config_value))
+
     class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
             class Condition:
@@ -516,7 +549,8 @@ class ConfigWindow:
                 self.EntryConfig("user id", str, "User which will be pinged in message.", "")
             ]), 
             self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature.", 75), 
-            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature.", 15)
+            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature.", 15),
+            self.BoolConfig("save data", "Exports data from every roll to csv file", True),
         ]
 
         self.right_config = [

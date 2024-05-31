@@ -8,6 +8,7 @@ from controller import Controller
 from discord import Webhook
 from macro import Macro
 from roblox import Roblox
+from datalogger import DataLogger
 
 # SETUP LOGGING
 log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -25,9 +26,10 @@ root_logger.addHandler(console_handler)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-# START CONFIG AND INITIALIZE WEBHOOK
+# START CONFIG AND INITIALIZE WEBHOOK AND DATA LOGGER
 config = Config()
 webhook = Webhook(config)
+data_logger = DataLogger(config)
 
 # CREATE ROOT AND MAIN GUI
 root = tk.Tk()
@@ -53,6 +55,7 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
 
     macro = Macro(roblox_game, controller, config, webhook)
     macro.add_pause_callback(lambda *_: gui_pause.open())
+    macro.add_data_callback(data_logger.append)
 
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)
