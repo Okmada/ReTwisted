@@ -15,7 +15,7 @@ log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelna
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.NOTSET)
 
-file_handler = logging.FileHandler("latest.log", "w")
+file_handler = logging.FileHandler("latest.log", "a")
 file_handler.setFormatter(log_formatter)
 root_logger.addHandler(file_handler)
 
@@ -25,6 +25,8 @@ root_logger.addHandler(console_handler)
 
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+logging.info("ReTwisted started up")
 
 # START CONFIG AND INITIALIZE WEBHOOK AND DATA LOGGER
 config = Config()
