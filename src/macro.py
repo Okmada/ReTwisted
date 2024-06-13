@@ -177,9 +177,14 @@ class Macro(threading.Thread):
                             self.controller.sync_click(self.roblox.hwnd, (84, 53))
 
                         # OPEN DATA MENU
-                        H, W, *_ = img.shape
-                        
-                        self.controller.sync_click(self.roblox.hwnd, (W//2 - 62, 118))
+                        buttons_cutout = img[90:150]
+                        buttons_mask = np.all(buttons_cutout == Colors.GRAY_2, axis=2).astype(np.uint8) * 255
+
+                        buttons_contours, _ = cv2.findContours(buttons_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+                        buttons_contours = sorted(buttons_contours, key=lambda e: self._get_contour_center(e)[0])[:6]
+
+                        weather_button = self._get_contour_center(buttons_contours[1])
+                        self.controller.sync_click(self.roblox.hwnd, (weather_button[0], weather_button[1] + 90))
 
                         time.sleep(1)
 
