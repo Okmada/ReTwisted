@@ -30,7 +30,7 @@ class Main:
         self.__setup()
 
     def __setup(self):
-        self.root.title("Re²:Twisted")
+        self.root.title("ReTwisted")
         self.root.geometry("850x500")
         self.root.resizable(True, True)
         self.root.iconphoto(True, tk.PhotoImage(file=resource_path("icon.png")))
@@ -46,7 +46,7 @@ class Main:
         self.right_side.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.right_side.pack_propagate(False)
 
-        tk.Label(self.left_side, text="Re²:Twisted", font=(FONT, 20), background=self.LBG) \
+        tk.Label(self.left_side, text="ReTwisted", font=(FONT, 20), background=self.LBG) \
             .pack(side=tk.TOP)
 
         tk.Label(self.left_side, text=f"version {VERSION}", font=(FONT, 12), background=self.LBG) \
@@ -188,7 +188,7 @@ class PauseWindow:
         self.setup()
 
     def setup(self):
-        self.root.title("Re:Twisted - pop up")
+        self.root.title("ReTwisted - pop up")
         self.root.geometry("360x150")
         self.root.resizable(False, False)
 
@@ -560,7 +560,7 @@ class ConfigWindow:
         self.__setup()
 
     def __setup(self):
-        self.root.title("Re:Twisted - config")
+        self.root.title("ReTwisted - config")
         self.root.geometry("1000x600")
         self.root.resizable(True, True)
 

@@ -27,7 +27,7 @@ class Webhook:
         user_id = self.config.get(["webhook", "user id"])
 
         payload = {
-            "username": "Re:Twisted",
+            "username": "ReTwisted",
             "avatar_url": "",
 
             "content": (f"<@&{role_id}>" if role_id else "") + (f"<@{user_id}>" if user_id else ""),
@@ -47,7 +47,7 @@ class Webhook:
                 "image": {"url": "attachment://data.png"},
                 "thumbnail": {"url": "attachment://code.png"},
                 "footer": {
-                    "text": "Re:Twisted • by Ad_amko",
+                    "text": "ReTwisted • by Ad_amko",
                     "icon_url": "attachment://icon.png"
                 }
             }]
