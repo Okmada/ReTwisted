@@ -54,6 +54,8 @@ class Colors:
     WHITE = (255, 255, 255)
     GREEN = (127, 255, 170)
 
+    GRAY_BUTTON = (79, 67, 64)
+
     GRAY_0 = (27, 23, 22)
     GRAY_1 = (34, 31, 28)
     GRAY_2 = (45, 38, 37)
@@ -141,7 +143,7 @@ class Macro(threading.Thread):
 
                         rect_cutout = img[:, W//2 - min(H, W)//2:W//2 + min(H, W)//2]
 
-                        loaded_game = np.all(img[118, W//2 - 62] == Colors.WHITE)
+                        loaded_game = np.all(img[80:100, W - 44] == Colors.GRAY_BUTTON, axis=1).any()
                         loaded_select = .5 < np.count_nonzero(np.argmax(rect_cutout, axis=2) == 1) / np.multiply(*rect_cutout.shape[:2])
 
                         if loaded_game or loaded_select:
