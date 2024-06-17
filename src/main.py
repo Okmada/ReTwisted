@@ -3,7 +3,7 @@ import sys
 import tkinter as tk
 
 import gui
-from config import Config
+from config import ConfigManager
 from controller import Controller
 from discord import Webhook
 from macro import Macro
@@ -29,7 +29,7 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.info("ReTwisted started up")
 
 # START CONFIG AND INITIALIZE WEBHOOK AND DATA LOGGER
-config = Config()
+config = ConfigManager()
 webhook = Webhook(config)
 data_logger = DataLogger(config)
 
@@ -62,6 +62,6 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)
 
-    gui.RobloxFrame(gui_main.games_scrollframe.interior, macro)
+    gui.RobloxFrame(gui_main.games_scrollframe.interior, macro, config)
 
 root.mainloop()

@@ -88,9 +88,6 @@ class Macro(threading.Thread):
         self._data_callbacks = []
         self._pause_callbacks = []
 
-        self._enabled = bool(self.config.get([self.roblox.name, "enabled"], False))
-        self._server = str(self.config.get([self.roblox.name, "server"], ""))
-
         self.start()
 
     def run(self):
@@ -109,7 +106,7 @@ class Macro(threading.Thread):
                 match self.phase:
                     case 1:
                         # START ROBLOX AND WAIT FOR HWND
-                        self.roblox.start_roblox(PLACE_ID, self._server)
+                        self.roblox.start_roblox(PLACE_ID, self.config.get([self.roblox.name, "server"]))
 
                         self.phase += 1
 
@@ -371,36 +368,18 @@ class Macro(threading.Thread):
         self.pause_event.clear()
 
     def unpause(self):
-        if self._enabled:
+        if self.config.get([self.roblox.name, "enabled"]):
             self.time = time.time()
 
             self.pause_event.set()
 
     def is_timedout(self):
-        time_max = int(self.config.get(["timeout"], 0))
+        time_max = self.config.get(["timeout"])
 
         if not time_max:
             return False
         
         return time.time() - self.time > time_max if time_max else False
-
-    def set_enabled(self, value):
-        value = bool(value or False)
-
-        self._enabled = value
-        self.config.set([self.roblox.name, "enabled"], value)
-
-    def set_server(self, value):
-        value = str(value or "")
-
-        self._server = value
-        self.config.set([self.roblox.name, "server"], value)
-
-    def get_enabled(self):
-        return self._enabled
-
-    def get_server(self):
-        return self._server
 
     def add_data_callback(self, func):
         self._data_callbacks.append(func)
@@ -409,7 +388,7 @@ class Macro(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data):
-        for group in self.config.get(["conditions"], []):
+        for group in self.config.get(["conditions"]):
             for condition in group:
                 what, comparison_type, expected_data = condition
 

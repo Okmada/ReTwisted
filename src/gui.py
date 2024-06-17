@@ -79,7 +79,7 @@ class Main:
         self.games_scrollframe.pack(fill=tk.BOTH, expand=True)
 
 class RobloxFrame:
-    def __new__(self, master, macro):
+    def __new__(self, master, macro, config):
         frame = tk.Frame(master, height=250, background="#aaa")
         frame.pack(padx=5, pady=5, fill=tk.X)
         frame.pack_propagate(False)
@@ -121,9 +121,9 @@ class RobloxFrame:
         enabled_frame = tk.Frame(info_frame_bottom)
         enabled_frame.pack(fill=tk.X, side=tk.TOP)
 
-        enabled_var = tk.IntVar(value=macro.get_enabled())
+        enabled_var = tk.IntVar(value=config.get([macro.roblox.name, "enabled"]))            
 
-        enabled_var.trace_add("write", lambda *e: macro.set_enabled(bool(enabled_var.get())))
+        enabled_var.trace_add("write", lambda *e: config.set([macro.roblox.name, "enabled"], bool(enabled_var.get())))
 
         tk.Label(enabled_frame, text="Enabled") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
@@ -133,7 +133,8 @@ class RobloxFrame:
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)
 
-        server_url_var = tk.StringVar(value=f"privateServerLinkCode={macro.get_server()}" if macro.get_server() else "")
+        server = config.get([macro.roblox.name, "server"])
+        server_url_var = tk.StringVar(value=f"privateServerLinkCode={server}" if server else "")
 
         tk.Label(server_frame, text="Server url:") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
@@ -142,14 +143,12 @@ class RobloxFrame:
 
         def write_verify_url(*e):
             code = re.search(".*privateServerLinkCode=([0-9]{32}).*", server_url_var.get())
-            if code:
-                server_url_entry.configure(highlightbackground="#54de01", highlightcolor="#54de01")
 
-                macro.set_server(str(code.group(1)))
-            else:
-                server_url_entry.configure(highlightbackground="red", highlightcolor="red")
-
-                macro.set_server(None)
+            color = "#54de01" if code else "red"
+            server_url_entry.configure(highlightbackground=color, highlightcolor=color)
+            
+            server = str(code.group(1)) if code else ""
+            config.set([macro.roblox.name, "server"], server)
 
         server_url_var.trace_add("write", write_verify_url)
         write_verify_url()
@@ -221,7 +220,7 @@ class PauseWindow:
         [f() for f in self.pause_events]
 
     def start_timer(self):
-        timer_mins = int(self.config.get(["resume timer"], 0))
+        timer_mins = self.config.get(["resume timer"])
 
         if not timer_mins:
             self.timer_text.config(text="")
@@ -287,11 +286,10 @@ class ConfigWindow:
                 child.export_config(config, path + [self.name])
 
     class EntryConfig(ConfigTemplate):
-        def __init__(self, name, dtype, description, dvalue):
+        def __init__(self, name, dtype, description):
             self.name = name.lower()
             self.dtype = dtype
             self.description = description
-            self.dvalue = dvalue
 
             self.inpt = tk.StringVar()
             self.inpt.trace_add("write", self._validate)
@@ -323,10 +321,7 @@ class ConfigWindow:
                 .pack(side=tk.LEFT, padx=(3, 0))
             
         def import_config(self, config, path=[]):
-            try:
-                config_value = self.dtype(config.get(path + [self.name], self.dvalue))
-            except:
-                config_value = self.dvalue
+            config_value = config.get(path + [self.name])
 
             self.inpt.set(config_value)
 
@@ -334,17 +329,16 @@ class ConfigWindow:
             try:
                 config_value = self.dtype(self.inpt.get())
             except:
-                config_value = self.dvalue
+                config_value = None
 
             config.set(path + [self.name], config_value)
 
     class BoolConfig(ConfigTemplate):
         options = ["Disabled", "Enabled"] # ["False", "True"]
 
-        def __init__(self, name, description, dvalue):
+        def __init__(self, name, description):
             self.name = name.lower()
             self.description = description
-            self.dvalue = int(bool(dvalue))
 
             self.inpt = tk.StringVar()     
 
@@ -362,7 +356,7 @@ class ConfigWindow:
                 .pack(side=tk.LEFT, padx=(3, 0))
             
         def import_config(self, config, path=[]):
-            config_value = int(bool(config.get(path + [self.name], self.dvalue)))
+            config_value = int(config.get(path + [self.name]))
 
             self.inpt.set(self.options[config_value])
         
@@ -527,7 +521,7 @@ class ConfigWindow:
             while self._sublist:
                 self._sublist.pop().frame.destroy()         
 
-            for groups in config.get(path + [self.name], []):
+            for groups in config.get(path + [self.name]):
                 self.ConditionGroup(self.master, self._sublist) \
                     .import_config(groups)
 
@@ -544,13 +538,13 @@ class ConfigWindow:
 
         self.left_config = [
             self.Group("webhook", [
-                self.EntryConfig("url", str, "Webhook url where message will be sent on successful find.\nLeave empty for no message.", ""), 
-                self.EntryConfig("role id", str, "Role which will be pinged in message.", ""),
-                self.EntryConfig("user id", str, "User which will be pinged in message.", "")
+                self.EntryConfig("url", str, "Webhook url where message will be sent on successful find.\nLeave empty for no message."), 
+                self.EntryConfig("role id", str, "Role which will be pinged in message."),
+                self.EntryConfig("user id", str, "User which will be pinged in message.")
             ]), 
-            self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature.", 75), 
-            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature.", 15),
-            self.BoolConfig("save data", "Exports data from every roll to csv file", True),
+            self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."), 
+            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
+            self.BoolConfig("save data", "Exports data from every roll to csv file"),
         ]
 
         self.right_config = [

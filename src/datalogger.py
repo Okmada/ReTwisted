@@ -12,7 +12,7 @@ class DataLogger:
         self.config = config
 
     def append(self, data):
-        if not bool(self.config.get(["save data"], True)):
+        if not self.config.get(["save data"]):
             return
         
         data = {**data, "DATETIME": datetime.datetime.now().strftime("%x %X")}
