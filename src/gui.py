@@ -229,6 +229,8 @@ class PauseWindow:
         timestamp = datetime.datetime.fromtimestamp(time.time() + timer_mins * 60).strftime("%H:%M")
         self.timer_text.config(text=f"If not closed will continue to reroll in {timer_mins} minutes ({timestamp})")
 
+        self.cancel_timer()
+
         self._timer = threading.Timer(timer_mins * 60, self.unpause_all)
         self._timer.start()
 
