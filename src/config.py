@@ -21,6 +21,7 @@ class ConfigManager:
             ],
             ConfigGroup("webhook", [
                 ConfigValue("url", str, ""),
+                ConfigValue("share link", bool, True),
                 ConfigValue("role id", str, ""),
                 ConfigValue("user id", str, ""),
             ]),

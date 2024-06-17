@@ -541,6 +541,7 @@ class ConfigWindow:
         self.left_config = [
             self.Group("webhook", [
                 self.EntryConfig("url", str, "Webhook url where message will be sent on successful find.\nLeave empty for no message."), 
+                self.BoolConfig("share link", "Adds a hyperlink to the server that has been rolled.\nWorks only for VIP servers."),
                 self.EntryConfig("role id", str, "Role which will be pinged in message."),
                 self.EntryConfig("user id", str, "User which will be pinged in message.")
             ]), 

@@ -351,7 +351,7 @@ class Macro(threading.Thread):
 
                             data_trans = self._crop_image(self._mask_transparent(img, data_mask))
 
-                            self.webhook.send(data=data_formated, code_image=code_trans, data_image=data_trans)
+                            self.webhook.send(roblox_type=self.roblox.name, data=data_formated, code_image=code_trans, data_image=data_trans)
 
                             [f() for f in self._pause_callbacks]
 

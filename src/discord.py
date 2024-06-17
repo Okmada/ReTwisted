@@ -18,11 +18,14 @@ class Webhook:
     def __init__(self, config):
         self.config = config
 
-    def send(self, data, data_image, code_image):
+    def send(self, roblox_type, data, data_image, code_image):
         url = self.config.get(["webhook", "url"])
         if not url:
             return
         
+        server = self.config.get([roblox_type, "server"])
+        
+        share_link = self.config.get(["webhook", "share link"])
         role_id = self.config.get(["webhook", "role id"])
         user_id = self.config.get(["webhook", "user id"])
 
@@ -42,6 +45,11 @@ class Webhook:
                         "value": f"```{'\n'.join([f'{key}: {item}' for key, item in data.items()])}```",
                         "inline": True
                     },
+                    *([{
+                        "name": "Server link :desktop:",
+                        "value": f"[Link to server](https://www.roblox.com/games/6161235818/Twisted-BETA?privateServerLinkCode={server})",
+                        "inline": True
+                    }] if server and share_link else [])
                 ],
 
                 "image": {"url": "attachment://data.png"},
