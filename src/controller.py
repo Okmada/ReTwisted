@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Callable
 
-import win32gui
+user32 = ctypes.windll.user32
 
 SM_XVIRTUALSCREEN = 76
 SM_YVIRTUALSCREEN = 77
@@ -55,10 +55,18 @@ class Input_I(ctypes.Union):
 class Input(ctypes.Structure):
     _fields_ = [("type", ctypes.c_ulong),
                 ("ii", Input_I)]
+        
+def get_window_rect(hwnd):
+    rect = ctypes.wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    return rect.left, rect.top, rect.right, rect.bottom
 
-DESKTOP = win32gui.GetDesktopWindow()
+def get_class_name(hwnd):
+    class_name = ctypes.create_unicode_buffer(256)
+    user32.GetClassNameW(hwnd, class_name, 256)
+    return class_name.value
 
-SendInput = ctypes.windll.user32.SendInput
+DESKTOP = user32.GetDesktopWindow()
 
 class Controller(threading.Thread):
     def __init__(self) -> None:
@@ -88,17 +96,17 @@ class Controller(threading.Thread):
 
         Controller._key_down(ALT)
         try:
-            win32gui.SetForegroundWindow(win)
+            user32.SetForegroundWindow(win)
         finally:
             Controller._key_up(ALT)
 
     @staticmethod
     def _move_to(x: int, y: int):
-        x_offset = ctypes.windll.user32.GetSystemMetrics(SM_XVIRTUALSCREEN)
-        y_offset = ctypes.windll.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+        x_offset = user32.GetSystemMetrics(SM_XVIRTUALSCREEN)
+        y_offset = user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
 
-        virtual_width = ctypes.windll.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN)
-        virtual_height = ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+        virtual_width = user32.GetSystemMetrics(SM_CXVIRTUALSCREEN)
+        virtual_height = user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
 
         x, y = x - x_offset, y - y_offset
         x, y = round(x * 65535 / virtual_width), round(y * 65535 / virtual_height)
@@ -107,7 +115,7 @@ class Controller(threading.Thread):
         ii_ = Input_I()
         ii_.mi = MouseInput(x, y, 0, (MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK), 0, ctypes.pointer(extra))
         command = Input(ctypes.c_ulong(0), ii_)
-        SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
+        user32.SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
 
     @staticmethod
     def _left_click():
@@ -115,17 +123,17 @@ class Controller(threading.Thread):
         ii_ = Input_I()
         ii_.mi = MouseInput(0, 0, 0, MOUSEEVENTF_LEFTCLICK, 0, ctypes.pointer(extra))
         command = Input(ctypes.c_ulong(0), ii_)
-        SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
+        user32.SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
 
     @staticmethod
     def _click_in_window(win: int, point: tuple):
         x, y = point
-        mx, my, *_ = win32gui.GetWindowRect(win)
+        mx, my, *_ = get_window_rect(win)
         fx, fy = mx + x, my + y
 
         Controller.focus_window(win)
 
-        if win32gui.GetClassName(win) == "WINDOWSCLIENT":
+        if get_class_name(win) == "WINDOWSCLIENT":
             time.sleep(.1)
             Controller.focus_window(DESKTOP)
 
@@ -135,7 +143,7 @@ class Controller(threading.Thread):
 
         time.sleep(.1)
 
-        if win32gui.GetClassName(win) == "WINDOWSCLIENT":
+        if get_class_name(win) == "WINDOWSCLIENT":
             Controller._left_click()
 
         Controller._left_click()
@@ -160,7 +168,7 @@ class Controller(threading.Thread):
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, key, keybdFlags, 0, ctypes.pointer(extra))
         command = Input(ctypes.c_ulong(1), ii_)
-        SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
+        user32.SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
 
     @staticmethod
     def _key_up(key: int):
@@ -170,7 +178,7 @@ class Controller(threading.Thread):
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, key, keybdFlags, 0, ctypes.pointer(extra))
         command = Input(ctypes.c_ulong(1), ii_)
-        SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
+        user32.SendInput(1, ctypes.pointer(command), ctypes.sizeof(command))
 
     @staticmethod
     def _press_key(win: int, key: int, delay=.25):
