@@ -25,6 +25,8 @@ KEYEVENTF_SCANCODE = 0x0008
 
 PUL = ctypes.POINTER(ctypes.c_ulong)
 
+DESKTOP = user32.GetDesktopWindow()
+
 class KeyBdInput(ctypes.Structure):
     _fields_ = [("wVk", ctypes.c_ushort),
                 ("wScan", ctypes.c_ushort),
@@ -65,8 +67,6 @@ def get_class_name(hwnd):
     class_name = ctypes.create_unicode_buffer(256)
     user32.GetClassNameW(hwnd, class_name, 256)
     return class_name.value
-
-DESKTOP = user32.GetDesktopWindow()
 
 class Controller(threading.Thread):
     def __init__(self) -> None:
