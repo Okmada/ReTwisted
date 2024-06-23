@@ -1,4 +1,5 @@
 import ctypes
+import enum
 import os
 import time
 
@@ -40,24 +41,21 @@ def get_window_rect(hwnd):
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     return rect.left, rect.top, rect.right, rect.bottom
 
+class RobloxTypes(enum.Enum):
+    WINDOWSCLIENT = "Roblox Player"
+    ApplicationFrameWindow = "UWP Roblox"
+
 class Roblox:
-    CLASS_NAMES = {
-        "WINDOWSCLIENT": "Roblox Player",
-        "ApplicationFrameWindow": "UWP Roblox"
-    }
+    def __init__(self, roblox_type: RobloxTypes):
+        self._roblox_type = roblox_type
+        self._hwnd: int = 0
 
-    def __init__(self, name):
-        assert name in self.CLASS_NAMES, "Invalid roblox"
-
-        self._name = name
-        self._hwnd = 0
-            
     def start_roblox(self, place_id, server=""):
         arg = f"roblox://placeId={place_id}" + (f"&linkCode={server}" if server else "")
 
-        match self._name:
-            case "WINDOWSCLIENT":
-                for root, dirs, files in os.walk(
+        match self._roblox_type:
+            case RobloxTypes.WINDOWSCLIENT:
+                for root, _, files in os.walk(
                         os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
                     if (file := 'Roblox Player.lnk') in files:
                         path = os.path.join(root, file)
@@ -67,16 +65,16 @@ class Roblox:
                     raise Exception("Roblox player is not installed")
 
                 os.startfile(path, arguments=arg)
-            case "ApplicationFrameWindow":
+            case RobloxTypes.ApplicationFrameWindow:
                 os.startfile(arg)
             case _:
                 return None
-            
+
         self.find_roblox()
 
     def find_roblox(self, retries=20):
         for _ in range(retries):
-            if hwnd := user32.FindWindowW(self._name, "Roblox"):
+            if hwnd := user32.FindWindowW(self._roblox_type.name, "Roblox"):
                 self._hwnd = hwnd
                 break
             time.sleep(1)
@@ -89,8 +87,8 @@ class Roblox:
     def is_crashed(self):
         if self._hwnd == 0:
             return False
-        
-        if self._name == "WINDOWSCLIENT":
+
+        if self._roblox_type == RobloxTypes.WINDOWSCLIENT:
             if win := user32.FindWindowW(None, "Roblox Crash"):
                 user32.PostMessageW(win, WM_CLOSE, 0, 0)
                 self._hwnd = 0
@@ -101,16 +99,16 @@ class Roblox:
             return True
         else:
             return False
-    
+
     def get_screenshot(self):
         if not user32.IsWindow(self._hwnd):
             return None
 
-        scaleFactor = user32.GetDpiForWindow(self._hwnd) / 96.0
+        scale_factor = user32.GetDpiForWindow(self._hwnd) / 96.0
 
         left, top, right, bot = get_window_rect(self._hwnd)
         unscaled_w, unscaled_h = right - left, bot - top
-        scaled_w, scaled_h = round(unscaled_w * scaleFactor), round(unscaled_h * scaleFactor)
+        scaled_w, scaled_h = round(unscaled_w * scale_factor), round(unscaled_h * scale_factor)
 
         hwndDC = user32.GetWindowDC(self._hwnd)
         mfcDC = gdi32.CreateCompatibleDC(hwndDC)
@@ -118,10 +116,10 @@ class Roblox:
         saveBitMap = gdi32.CreateCompatibleBitmap(hwndDC, scaled_w, scaled_h)
         gdi32.SelectObject(mfcDC, saveBitMap)
 
-        match self._name:
-            case "WINDOWSCLIENT":
+        match self._roblox_type:
+            case RobloxTypes.WINDOWSCLIENT:
                 gdi32.BitBlt(mfcDC, 0, 0, scaled_w, scaled_h, hwndDC, 0, 0, SRCCOPY)
-            case "ApplicationFrameWindow":
+            case RobloxTypes.ApplicationFrameWindow:
                 user32.PrintWindow(self._hwnd, mfcDC, 2)
             case _:
                 return None
@@ -148,13 +146,14 @@ class Roblox:
         img = cv2.resize(img, (unscaled_w, unscaled_h), interpolation=cv2.INTER_NEAREST)
 
         return img.astype(dtype=np.uint8)
-    
-    def get_name(self):
-        return self.CLASS_NAMES[self._name]
+
+    @property
+    def friendly_name(self):
+        return self._roblox_type.value
 
     @property
     def name(self):
-        return self._name
+        return self._roblox_type.name
 
     @property
     def hwnd(self):

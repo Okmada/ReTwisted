@@ -27,7 +27,7 @@ jobs:
 
       - name: Download pip dependencies
         run: pip install -r requirements.txt pyinstaller Pillow
-        
+
       - name: Build app
         run: pyinstaller src/main.py --onefile --noconsole --add-data "icon.png;." -i icon.png -n ${{ env.app_name }}
 

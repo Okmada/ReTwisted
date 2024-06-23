@@ -15,7 +15,7 @@ Contributions are appreciated.
 
 - Make sure to have Roblox protocol default to UWP Roblox from MS Store.
 
-- Recommended layout is having each Roblox on one side of the screen 
+- Recommended layout is having each Roblox on one side of the screen
 
 ### How to get Server URL:
 

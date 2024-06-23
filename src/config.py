@@ -1,5 +1,7 @@
 import json
-import typing
+from typing import Any, List, Type
+
+from roblox import RobloxTypes
 
 
 class ConfigManager:
@@ -7,17 +9,17 @@ class ConfigManager:
 
     def __init__(self):
         try:
-            raw = json.load(open(self.CONFIG_FILE, "r"))
+            raw = json.load(open(self.CONFIG_FILE, "r", encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
             raw = {}
 
         self.__config = ConfigGroup("", [
             *[
-                ConfigGroup(roblox_type, [
+                ConfigGroup(roblox_type.name, [
                     ConfigValue("enabled", bool, False),
                     ConfigValue("server", str, ""),
                 ])
-                for roblox_type in ["WINDOWSCLIENT", "ApplicationFrameWindow"]
+                for roblox_type in RobloxTypes
             ],
             ConfigGroup("webhook", [
                 ConfigValue("url", str, ""),
@@ -33,17 +35,17 @@ class ConfigManager:
 
         self.__config.set(raw)
 
-    def _write(self):
-        with open(self.CONFIG_FILE, "w") as file:
+    def _write(self) -> None:
+        with open(self.CONFIG_FILE, "w", encoding="utf-8") as file:
             json.dump(self.__config.get(), file, indent=4)
 
-    def get(self, path):
+    def get(self, path: List[str]) -> Any:
         tmp = self.__config
         for arg in path:
             tmp = tmp.find(arg)
         return tmp.get()
-    
-    def set(self, path, value):
+
+    def set(self, path: List[str], value: Any) -> None:
         tmp = self.__config
         for arg in path:
             tmp = tmp.find(arg)
@@ -57,13 +59,13 @@ class ConfigTemplate:
 
     def get(self):
         raise NotImplementedError("Subclasses should implement this method")
-    
-    def set(self, value):
+
+    def set(self, value: Any):
         raise NotImplementedError("Subclasses should implement this method")
-    
-    def find(self, name):
+
+    def find(self, name: str):
         raise NotImplementedError("Subclasses should implement this method")
-    
+
 class ConfigGroup(ConfigTemplate):
     def __init__(self, name: str, subconfigs: list[ConfigTemplate]):
         """
@@ -131,14 +133,14 @@ class ConfigGroup(ConfigTemplate):
 
 
 class ConfigValue(ConfigTemplate):
-    def __init__(self, name: str, dtype: typing.Type, dvalue: typing.Any):
+    def __init__(self, name: str, dtype: Type, dvalue: Any):
         """
         Initialize a configuration value.
 
         Args:
             name (str): The name of the configuration value.
-            dtype (typing.Type): The expected data type of the value.
-            dvalue (typing.Any): The default value of the configuration.
+            dtype (Type): The expected data type of the value.
+            dvalue (Any): The default value of the configuration.
 
         Raises:
             AssertionError: If the default value type does not match the expected data type.
@@ -150,21 +152,21 @@ class ConfigValue(ConfigTemplate):
         self.dvalue = dvalue
         self.value = dvalue
 
-    def get(self) -> typing.Any:
+    def get(self) -> Any:
         """
         Get the current value.
 
         Returns:
-            typing.Any: The current value.
+            Any: The current value.
         """
         return self.value
 
-    def set(self, value: typing.Any) -> bool:
+    def set(self, value: Any) -> bool:
         """
         Set a new value.
 
         Args:
-            value (typing.Any): The new value to be set.
+            value (Any): The new value to be set.
 
         Returns:
             bool: True if the value was set successfully, False otherwise.
@@ -172,6 +174,6 @@ class ConfigValue(ConfigTemplate):
         if not isinstance(value, self.dtype) or value is None:
             self.value = self.dvalue
             return False
-        
+
         self.value = value
         return True

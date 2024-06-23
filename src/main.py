@@ -2,13 +2,14 @@ import logging
 import sys
 import tkinter as tk
 
-import gui
+import roblox
 from config import ConfigManager
+from constants import NAME, VERSION
 from controller import Controller
-from discord import Webhook
-from macro import Macro
-from roblox import Roblox
 from datalogger import DataLogger
+from discord import Webhook
+from gui import configwindow, mainwindow, pausewindow, robloxframe
+from macro import Macro
 
 # SETUP LOGGING
 log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -26,7 +27,7 @@ root_logger.addHandler(console_handler)
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-logging.info("ReTwisted started up")
+logging.info(f"{NAME} v{VERSION} started up")
 
 # START CONFIG AND INITIALIZE WEBHOOK AND DATA LOGGER
 config = ConfigManager()
@@ -36,12 +37,12 @@ data_logger = DataLogger(config)
 # CREATE ROOT AND MAIN GUI
 root = tk.Tk()
 
-gui_main = gui.Main(root)
+gui_main = mainwindow.MainWindow(root)
 
-gui_config = gui.ConfigWindow(root, config)
+gui_config = configwindow.ConfigWindow(root, config)
 gui_main.config_events.append(gui_config.open)
 
-gui_pause = gui.PauseWindow(root, config)
+gui_pause = pausewindow.PauseWindow(root, config)
 gui_pause.pause_events = gui_main.pause_events
 gui_pause.unpause_events = gui_main.unpause_events
 gui_main.unpause_events.append(gui_pause.close)
@@ -52,8 +53,8 @@ gui_main.pause_events.append(controller.pause)
 gui_main.unpause_events.append(controller.unpause)
 
 # CREATE ROBLOX GAMES
-for roblox_type in Roblox.CLASS_NAMES.keys():
-    roblox_game = Roblox(roblox_type)
+for roblox_type in roblox.RobloxTypes:
+    roblox_game = roblox.Roblox(roblox_type)
 
     macro = Macro(roblox_game, controller, config, webhook)
     macro.add_pause_callback(lambda *_: gui_pause.open())
@@ -62,6 +63,6 @@ for roblox_type in Roblox.CLASS_NAMES.keys():
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)
 
-    gui.RobloxFrame(gui_main.games_scrollframe.interior, macro, config)
+    robloxframe.RobloxFrame(gui_main.games_scrollframe.interior, macro, config)
 
 root.mainloop()

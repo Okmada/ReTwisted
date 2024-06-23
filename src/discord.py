@@ -1,36 +1,31 @@
 import json
-import os
-import sys
 
 import cv2
 import requests
 
+import utils
+from config import ConfigManager
+from constants import NAME
+from roblox import RobloxTypes
 
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 class Webhook:
-    def __init__(self, config):
+    def __init__(self, config: ConfigManager) -> None:
         self.config = config
 
-    def send(self, roblox_type, data, data_image, code_image):
+    def send(self, roblox_type: RobloxTypes, data: dict, data_image, code_image) -> requests.Response | None:
         url = self.config.get(["webhook", "url"])
         if not url:
             return
-        
+
         server = self.config.get([roblox_type, "server"])
-        
+
         share_link = self.config.get(["webhook", "share link"])
         role_id = self.config.get(["webhook", "role id"])
         user_id = self.config.get(["webhook", "user id"])
 
         payload = {
-            "username": "ReTwisted",
+            "username": NAME,
             "avatar_url": "",
 
             "content": (f"<@&{role_id}>" if role_id else "") + (f"<@{user_id}>" if user_id else ""),
@@ -55,7 +50,7 @@ class Webhook:
                 "image": {"url": "attachment://data.png"},
                 "thumbnail": {"url": "attachment://code.png"},
                 "footer": {
-                    "text": "ReTwisted • by Ad_amko",
+                    "text": f"{NAME} • by Ad_amko",
                     "icon_url": "attachment://icon.png"
                 }
             }]
@@ -64,7 +59,7 @@ class Webhook:
         files = {
             "_code.png": ("code.png", cv2.imencode(".png", code_image)[1].tostring()),
             "_data.png": ("data.png", cv2.imencode(".png", data_image)[1].tostring()),
-            "_icon.png": ("icon.png", open(resource_path("icon.png"), "rb").read()),
+            "_icon.png": ("icon.png", open(utils.resource_path("icon.png"), "rb").read()),
             'payload_json': (None, json.dumps(payload)),
         }
 

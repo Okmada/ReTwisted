@@ -1,8 +1,8 @@
 import asyncio
 
 import cv2
-from winsdk.windows.graphics.imaging import (BitmapPixelFormat, 
-                                             BitmapAlphaMode, SoftwareBitmap)
+from winsdk.windows.graphics.imaging import (BitmapAlphaMode,
+                                             BitmapPixelFormat, SoftwareBitmap)
 from winsdk.windows.media.ocr import OcrEngine
 from winsdk.windows.security.cryptography import CryptographicBuffer
 
@@ -30,7 +30,7 @@ class Ocr:
 
         buffer = Ocr.ibuffer(bytes)
         return SoftwareBitmap.create_copy_from_buffer(buffer, FORMAT, W, H, ALPHA)
-    
+
     @staticmethod
     def get_language_with_ocr():
         languages_with_ocr = list(OcrEngine.available_recognizer_languages)
@@ -49,7 +49,7 @@ class Ocr:
     @staticmethod
     def ocr(img):
         ocr_language = Ocr.get_language_with_ocr()
-        
+
         assert ocr_language, "No language supports OCR"
 
         ocr_engine = OcrEngine.try_create_from_language(ocr_language)

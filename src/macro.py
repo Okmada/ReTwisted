@@ -2,15 +2,20 @@ import logging
 import re
 import threading
 import time
+from typing import Any, Callable, Tuple
 
 import cv2
 import numpy as np
 
+from config import ConfigManager
+from controller import Controller
+from discord import Webhook
 from ocr import Ocr
+from roblox import Roblox
 
 PLACE_ID = 6161235818
 
-class Data:
+class Data(dict):
     FORMAT = {
         "TEMPERATURE": int,
         "CAPE": int,
@@ -35,21 +40,13 @@ class Data:
         "DAY 3": str,
     }
 
-    @staticmethod
-    def _to_data_type(value, data_type):
-        if data_type == int:
-            value = "".join([ch for ch in value if ch in "0123456789"])
-        elif data_type == float:
-            value = "".join([ch for ch in value if ch in ".0123456789"])
-        return data_type(value)
+    def __init__(self, *data):
+        assert len(data) == len(self.FORMAT), "Invalid data len"
 
-    def __new__(cls, *data) -> None:
-        assert len(data) == len(cls.FORMAT), "Invalid data len"
+        super().__init__({name: data_type(value)
+                          for (name, data_type), value
+                          in zip(self.FORMAT.items(), data, strict=True)})
 
-        return {name: cls._to_data_type(value, data_type) 
-                for (name, data_type), value 
-                in zip(cls.FORMAT.items(), data, strict=True)}
-    
 class Colors:
     WHITE = (255, 255, 255)
     GREEN = (127, 255, 170)
@@ -72,8 +69,8 @@ class Colors:
     }
 
 class Macro(threading.Thread):
-    def __init__(self, roblox, controller, config, webhook):
-        super().__init__(daemon=True, name=roblox.get_name())
+    def __init__(self, roblox: Roblox, controller: Controller, config: ConfigManager, webhook: Webhook) -> None:
+        super().__init__(daemon=True, name=roblox.friendly_name)
 
         self.pause_event = threading.Event()
 
@@ -115,12 +112,12 @@ class Macro(threading.Thread):
                         if np.all(img == Colors.GREEN, axis=2).any():
                             time.sleep(1)
                             self.phase += 1
-                        
+
                     case 3:
                         # NAVIGATE MENU
-                        slice = img[:, :int(0.22 * img.shape[1])]
+                        cutout = img[:, :int(0.22 * img.shape[1])]
 
-                        green_mask = np.all(slice == Colors.GREEN, axis=2).astype(np.uint8) * 255
+                        green_mask = np.all(cutout == Colors.GREEN, axis=2).astype(np.uint8) * 255
 
                         green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
@@ -260,8 +257,8 @@ class Macro(threading.Thread):
                                 color_text = self._crop_image(color_text, top=False, bottom=False)
                                 color_text = color_text[:, :-round(next(unit_coef_iterator) * color_text.shape[0])]
 
-                                merged_img = np.concatenate([cont_img, 
-                                                             np.zeros([cont_img.shape[0]]*2, np.uint8), 
+                                merged_img = np.concatenate([cont_img,
+                                                             np.zeros([cont_img.shape[0]]*2, np.uint8),
                                                              color_text], axis=1)
                                 merged_img = self._upscale_for_ocr(merged_img)
 
@@ -291,7 +288,7 @@ class Macro(threading.Thread):
                         # hodo_img = self._extract_contour(img, sub_data_contours[2])
 
                         # wind_mask = np.all(hodo_img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255
-                        
+
                         # wind_contours, _ = cv2.findContours(wind_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                         # wind_contours = [c for c in wind_contours if cv2.contourArea(c) > 10]
 
@@ -364,30 +361,30 @@ class Macro(threading.Thread):
                 self.time = time.time()
                 self.phase = 1
 
-    def pause(self):
+    def pause(self) -> None:
         self.pause_event.clear()
 
-    def unpause(self):
+    def unpause(self) -> None:
         if self.config.get([self.roblox.name, "enabled"]):
             self.time = time.time()
 
             self.pause_event.set()
 
-    def is_timedout(self):
+    def is_timedout(self) -> bool:
         time_max = self.config.get(["timeout"])
 
         if not time_max:
             return False
-        
+
         return time.time() - self.time > time_max if time_max else False
 
-    def add_data_callback(self, func):
+    def add_data_callback(self, func: Callable[[Data], Any]) -> None:
         self._data_callbacks.append(func)
 
-    def add_pause_callback(self, func):
+    def add_pause_callback(self, func: Callable[[], Any]) -> None:
         self._pause_callbacks.append(func)
 
-    def check_conditions(self, data):
+    def check_conditions(self, data: Data) -> bool:
         for group in self.config.get(["conditions"]):
             for condition in group:
                 what, comparison_type, expected_data = condition
@@ -406,27 +403,27 @@ class Macro(threading.Thread):
         return False
 
     @staticmethod
-    def _get_contour_center(contour):
+    def _get_contour_center(contour: np.ndarray) -> Tuple[int, int]:
         M = cv2.moments(contour)
         center_X = int(M["m10"] / M["m00"]) if M["m00"] != 0 else 0
         center_Y = int(M["m01"] / M["m00"]) if M["m00"] != 0 else 0
         return (center_X, center_Y)
 
     @staticmethod
-    def _crop_image(image, top=True, bottom=True, left=True, right=True):
+    def _crop_image(image: np.ndarray, top=True, bottom=True, left=True, right=True) -> np.ndarray:
         H, W, *_ = image.shape
 
         non_empty_columns = np.where(image.max(axis=0) > 0)[0]
         non_empty_rows = np.where(image.max(axis=1) > 0)[0]
 
-        crop_box = (min(non_empty_rows) if top else 0, 
-                   max(non_empty_rows)+1 if bottom else H, 
-                   min(non_empty_columns) if left else 0, 
+        crop_box = (min(non_empty_rows) if top else 0,
+                   max(non_empty_rows)+1 if bottom else H,
+                   min(non_empty_columns) if left else 0,
                    max(non_empty_columns)+1 if right else W)
         return image[crop_box[0]:crop_box[1], crop_box[2]:crop_box[3]]
 
     @staticmethod
-    def _mask_transparent(image, mask):
+    def _mask_transparent(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         assert mask.shape[:2] == image.shape[:2], "missmatched mask shape"
 
         transparent_image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
@@ -435,17 +432,17 @@ class Macro(threading.Thread):
         return transparent_image
 
     @staticmethod
-    def _upscale_for_ocr(image):
-        SCALE = 325 / image.shape[0]
+    def _upscale_for_ocr(image: np.ndarray) -> np.ndarray:
+        scale = 325 / image.shape[0]
 
         image = cv2.copyMakeBorder(image, *[int(image.shape[0] * 0.35)] * 4, cv2.BORDER_CONSTANT)
-        new_dims = [round(dim * SCALE) for dim in image.shape[:2]][::-1]
+        new_dims = [round(dim * scale) for dim in image.shape[:2]][::-1]
         image = cv2.resize(image, new_dims, interpolation=cv2.INTER_LINEAR)
 
         return image
 
     @staticmethod
-    def _read_number(image):
+    def _read_number(image: np.ndarray) -> str:
         text = Ocr.ocr(image)
 
         text = text.replace("Ø", "0")
@@ -457,7 +454,7 @@ class Macro(threading.Thread):
         return nums[-1] if nums else "0"
 
     @staticmethod
-    def _extract_contour(image, contour):
+    def _extract_contour(image: np.ndarray, contour: np.ndarray) -> np.ndarray:
         X, Y, W, H = cv2.boundingRect(contour)
 
         cutout = np.zeros([H, W] + list(image.shape[2:]), np.uint8)
@@ -469,7 +466,7 @@ class Macro(threading.Thread):
         return cutout
 
     @staticmethod
-    def _remove_dots(image):
+    def _remove_dots(image: np.ndarray) -> np.ndarray:
         H, W, *_ = image.shape
         to_delete = []
 
