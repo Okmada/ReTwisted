@@ -1,29 +1,30 @@
 import datetime
 import logging
 
-from macro import Data
+from data import Data
 
 
 class DataLogger:
     FILENAME = "data.csv"
-    LABELS = ["DATETIME"] + list(Data.FORMAT.keys())
 
     def __init__(self, config):
         self.config = config
 
-    def append(self, data: Data):
+    def append(self, data_raw: Data):
         if not self.config.get(["save data"]):
             return
 
-        data = {**data, "DATETIME": datetime.datetime.now().strftime("%x %X")}
+        labels_template = ["DATETIME"] + list(data_raw.FORMAT.keys())
+
+        data = {**data_raw, "DATETIME": datetime.datetime.now().strftime("%x %X")}
 
         try:
             with open(self.FILENAME, "r", encoding="utf-8") as file:
                 labels = file.readline().strip().split(",")
 
-            assert all([l in labels for l in self.LABELS])
+            assert all([l in labels for l in labels_template])
         except:
-            labels = self.LABELS
+            labels = labels_template
             try:
                 with open(self.FILENAME, "w", encoding="utf-8") as file:
                     file.write(",".join(labels) + "\n")

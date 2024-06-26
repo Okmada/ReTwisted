@@ -6,6 +6,7 @@ import requests
 import utils
 from config import ConfigManager
 from constants import NAME
+from data import Data
 from roblox import RobloxTypes
 
 
@@ -13,7 +14,7 @@ class Webhook:
     def __init__(self, config: ConfigManager) -> None:
         self.config = config
 
-    def send(self, roblox_type: RobloxTypes, data: dict, data_image, code_image) -> requests.Response | None:
+    def send(self, roblox_type: RobloxTypes, data: Data, data_image, code_image) -> requests.Response | None:
         url = self.config.get(["webhook", "url"])
         if not url:
             return

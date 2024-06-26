@@ -2,14 +2,14 @@ import logging
 import sys
 import tkinter as tk
 
-import roblox
 from config import ConfigManager
 from constants import NAME, VERSION
 from controller import Controller
 from datalogger import DataLogger
 from discord import Webhook
 from gui import configwindow, mainwindow, pausewindow, robloxframe
-from macro import Macro
+from macro.macrohandler import MacroHandler
+from roblox import Roblox, RobloxTypes
 
 # SETUP LOGGING
 log_formatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
@@ -53,10 +53,10 @@ gui_main.pause_events.append(controller.pause)
 gui_main.unpause_events.append(controller.unpause)
 
 # CREATE ROBLOX GAMES
-for roblox_type in roblox.RobloxTypes:
-    roblox_game = roblox.Roblox(roblox_type)
+for roblox_type in RobloxTypes:
+    roblox_game = Roblox(roblox_type)
 
-    macro = Macro(roblox_game, controller, config, webhook)
+    macro = MacroHandler(roblox_game, controller, config, webhook)
     macro.add_pause_callback(lambda *_: gui_pause.open())
     macro.add_data_callback(data_logger.append)
 

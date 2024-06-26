@@ -4,11 +4,12 @@ import tkinter as tk
 
 from config import ConfigManager
 from constants import FONT
-from macro import Data, Macro
+from data import Data
+from macro.macrohandler import MacroHandler
 
 
 class RobloxFrame:
-    def __new__(self, master, macro: Macro, config: ConfigManager):
+    def __new__(self, master, macro: MacroHandler, config: ConfigManager):
         frame = tk.Frame(master, height=250, background="#aaa")
         frame.pack(padx=5, pady=5, fill=tk.X)
         frame.pack_propagate(False)
