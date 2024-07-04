@@ -50,6 +50,8 @@ class MacroHandler(threading.Thread):
 
                 data, data_img, code_img = return_val
 
+                logging.info(data)
+
                 if self.check_conditions(data):
                     logging.info("Conditions passed")
 
