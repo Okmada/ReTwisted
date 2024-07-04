@@ -22,6 +22,8 @@ class Macro:
         func = self.steps[self._phase]
         return_val = func(*args, **kwargs)
 
+        assert return_val is not None, "Return value is None"
+
         if return_val:
             self._phase += 1
             self._phase %= len(self.steps)
