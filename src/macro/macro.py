@@ -14,11 +14,7 @@ class Macro:
 
         self._phase = 0
 
-    @property
-    def steps(self) -> List:
-        raise NotImplementedError
-
-    def get(self, *args, **kwargs) -> bool | Type[Data]:
+    def __call__(self, *args, **kwargs) -> bool | Type[Data]:
         func = self.steps[self._phase]
         return_val = func(*args, **kwargs)
 
@@ -29,6 +25,10 @@ class Macro:
             self._phase %= len(self.steps)
 
         return return_val
+
+    @property
+    def steps(self) -> List:
+        raise NotImplementedError
 
     def restart(self) -> None:
         self._phase = 0

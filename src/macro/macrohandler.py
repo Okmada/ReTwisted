@@ -43,7 +43,7 @@ class MacroHandler(threading.Thread):
 
                 img = self.roblox.get_screenshot()
 
-                return_val = self._macro.get(img)
+                return_val = self._macro(img)
 
                 if isinstance(return_val, bool):
                     continue
