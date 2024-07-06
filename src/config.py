@@ -14,13 +14,13 @@ class ConfigManager:
             raw = {}
 
         self.__config = ConfigGroup("", [
-            *[
+            ConfigGroup("roblox", [
                 ConfigGroup(roblox_type.name, [
                     ConfigValue("enabled", bool, False),
                     ConfigValue("server", str, ""),
                 ])
                 for roblox_type in RobloxTypes
-            ],
+            ]),
             ConfigGroup("webhook", [
                 ConfigValue("url", str, ""),
                 ConfigValue("share link", bool, True),

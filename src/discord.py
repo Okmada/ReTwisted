@@ -19,7 +19,7 @@ class Webhook:
         if not url:
             return
 
-        server = self.config.get([roblox_type, "server"])
+        server = self.config.get(["roblox", roblox_type, "server"])
 
         share_link = self.config.get(["webhook", "share link"])
         role_id = self.config.get(["webhook", "role id"])

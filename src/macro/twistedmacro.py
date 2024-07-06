@@ -71,7 +71,7 @@ class TwistedMacro(Macro):
 
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
-        self.roblox.start_roblox(PLACE_ID, self.config.get([self.roblox.name, "server"]))
+        self.roblox.start_roblox(PLACE_ID, self.config.get(["roblox", self.roblox.name, "server"]))
 
         return True
 

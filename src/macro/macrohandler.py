@@ -71,7 +71,7 @@ class MacroHandler(threading.Thread):
         self.pause_event.clear()
 
     def unpause(self) -> None:
-        if self.config.get([self.roblox.name, "enabled"]):
+        if self.config.get(["roblox", self.roblox.name, "enabled"]):
             self._time = time.time()
 
             self.pause_event.set()
