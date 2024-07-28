@@ -18,10 +18,7 @@ class Colors:
     GRAY_BUTTON = (79, 67, 64)
 
     GRAY_0 = (27, 23, 22)
-    GRAY_1 = (34, 31, 28)
-    GRAY_2 = (45, 38, 37)
-
-    GRAYS = (GRAY_0, GRAY_1, GRAY_2)
+    GRAY_1 = (45, 38, 37)
 
     DAYS = {
         "HIGH": ((255, 127, 255), (200, 102, 198), (146, 79, 142)),
@@ -157,18 +154,18 @@ class TwistedMacro(Macro):
         data_output = []
 
         # GET CONTOURS OF WINDOWS
-        grays_mask = np.logical_or.reduce([np.all(img == gray, axis=2) for gray in Colors.GRAYS]).astype(np.uint8) * 255
+        gray_mask = np.all(img == Colors.GRAY_1, axis=2).astype(np.uint8) * 255
 
-        color_contours = scv.find_contours(grays_mask)
-        color_contours = max(color_contours, key=cv2.contourArea)
+        data_contours = scv.find_contours(gray_mask)
+        data_contour = max(data_contours, key=cv2.contourArea)
 
-        data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [color_contours], -1, 255, -1)
+        data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [data_contour], -1, 255, -1)
 
-        sub_data_masks = np.bitwise_and(data_mask, np.all(img!=Colors.GRAY_2, axis=2)).astype(np.uint8) * 255
+        sub_data_masks = np.bitwise_and(data_mask, np.bitwise_not(gray_mask)).astype(np.uint8) * 255
         sub_data_contours = scv.find_contours(sub_data_masks)
         sub_data_contours.sort(key=cv2.contourArea, reverse=True)
 
-        sub_data_contours, composites_contour, days_contours = sub_data_contours[:3], sub_data_contours[4], sub_data_contours[5:8]
+        sub_data_contours, composites_contour, days_contours = sub_data_contours[:3], sub_data_contours[3], sub_data_contours[4:7]
 
         sub_data_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
         days_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
@@ -292,7 +289,7 @@ class TwistedMacro(Macro):
                 data_output.append(None)
 
         code_row = img[40:90]
-        code_row_mask = np.all(code_row == Colors.GRAY_2, axis=2).astype(np.uint8) * 255
+        code_row_mask = np.all(code_row == Colors.GRAY_1, axis=2).astype(np.uint8) * 255
 
         code_contour = scv.find_contours(code_row_mask)
         code_contour = min(code_contour, key=lambda e: scv.get_contour_center(e)[0])
@@ -300,7 +297,12 @@ class TwistedMacro(Macro):
         code_mask = cv2.drawContours(np.zeros(code_row.shape[:2], np.uint8), [code_contour], -1, 255, -1)
         code_trans = scv.crop_image(scv.mask_transparent(code_row, code_mask))
 
-        data_trans = scv.crop_image(scv.mask_transparent(img, data_mask))
+        top_mask = np.bitwise_and(np.bitwise_not(data_mask), np.all(img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255)
+        top_contour = max(scv.find_contours(top_mask), key=cv2.contourArea)
+        full_data_contour = cv2.convexHull(np.vstack((top_contour, data_contour)))
+        full_data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [full_data_contour], -1, 255, -1)
+
+        data_trans = scv.crop_image(scv.mask_transparent(img, full_data_mask))
 
         try:
             return TwistedData(*data_output), data_trans, code_trans
