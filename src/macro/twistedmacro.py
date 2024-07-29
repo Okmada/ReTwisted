@@ -12,7 +12,6 @@ from macro.macro import Macro
 PLACE_ID = 6161235818
 
 class Colors:
-    WHITE = (255, 255, 255)
     GREEN = (127, 255, 170)
 
     GRAY_BUTTON = (79, 67, 64)
