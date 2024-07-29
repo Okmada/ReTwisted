@@ -133,11 +133,8 @@ class TwistedMacro(Macro):
 
     def open_data_menu(self, img: np.ndarray) -> bool:
         # CLOSE CHAT
-        chat_slice = img[50:80, 130:163]
-        ratio = np.count_nonzero(np.all(chat_slice == Colors.WHITE, axis=2)) / np.multiply(*chat_slice.shape[:2])
-
-        if ratio > .30:
-            self.controller.sync_click(self.roblox.hwnd, (146, 65))
+        if self.roblox.is_chat_open():
+            self.controller.sync_click(self.roblox.hwnd, (83, 52))
 
         # OPEN DATA MENU
         H, W, *_ = img.shape

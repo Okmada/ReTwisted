@@ -99,6 +99,14 @@ class Roblox:
             return True
         else:
             return False
+        
+    def is_chat_open(self):
+        img = self.get_screenshot()
+
+        chat_slice = img[42:63, 73:94]
+        ratio = np.count_nonzero(np.all(chat_slice == (255, 255, 255), axis=2)) / np.multiply(*chat_slice.shape[:2])
+
+        return ratio >= .5
 
     def get_screenshot(self):
         if not user32.IsWindow(self._hwnd):
