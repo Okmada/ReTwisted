@@ -303,6 +303,7 @@ class ConfigWindow:
             self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."),
             self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
             self.BoolConfig("save data", "Exports data from every roll to csv file"),
+            self.BoolConfig("bloxstrap", "Use Bloxstrap instead of Roblox Player, if available."),
         ]
 
         self.right_config = [

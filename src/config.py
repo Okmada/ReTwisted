@@ -30,6 +30,7 @@ class ConfigManager:
             ConfigValue("timeout", int, 75),
             ConfigValue("resume timer", int, 15),
             ConfigValue("save data", bool, True),
+            ConfigValue("bloxstrap", bool, False),
             ConfigValue("conditions", list, []),
         ])
 

@@ -1,5 +1,6 @@
 import ctypes
 import enum
+import logging
 import os
 import time
 
@@ -50,18 +51,22 @@ class Roblox:
         self._roblox_type = roblox_type
         self._hwnd: int = 0
 
-    def start_roblox(self, place_id, server=""):
+    def start_roblox(self, place_id, server="", bloxstrap=False):
         arg = f"roblox://placeId={place_id}" + (f"&linkCode={server}" if server else "")
 
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
-                for root, _, files in os.walk(
-                        os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")):
-                    if (file := 'Roblox Player.lnk') in files:
-                        path = os.path.join(root, file)
-                        break
+                programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
 
-                else:
+                path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
+
+                if bloxstrap:
+                    bloxstrap_path = os.path.join(programs_dir, "Bloxstrap\\Play Roblox.lnk")
+
+                    if os.path.isfile(bloxstrap_path): path = bloxstrap_path
+                    else: logging.warn("Could not find Bloxstrap, using Roblox Player instead.")
+
+                if not os.path.isfile(path):
                     raise Exception("Roblox player is not installed")
 
                 os.startfile(path, arguments=arg)
@@ -99,7 +104,7 @@ class Roblox:
             return True
         else:
             return False
-        
+
     def is_chat_open(self):
         img = self.get_screenshot()
 
