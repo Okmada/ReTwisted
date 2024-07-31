@@ -1,3 +1,4 @@
+import time
 from typing import List, Type
 
 from config import ConfigManager
@@ -12,6 +13,7 @@ class Macro:
         self.controller = controller
         self.config = config
 
+        self._passes = 0
         self._phase = 0
 
     def __call__(self, *args, **kwargs) -> bool | Type[Data]:
@@ -20,9 +22,23 @@ class Macro:
 
         assert return_val is not None, "Return value is None"
 
+        if hasattr(func, "ensure"):
+            amount, delay = func.ensure
+        else:
+            amount, delay = 1, 0
+
         if return_val:
-            self._phase += 1
-            self._phase %= len(self.steps)
+            self._passes += 1
+
+            if self._passes >= amount:
+                self._passes = 0
+
+                self._phase += 1
+                self._phase %= len(self.steps)
+            else:
+                time.sleep(delay)
+        else:
+            self._passes = 0
 
         return return_val
 
@@ -32,3 +48,9 @@ class Macro:
 
     def restart(self) -> None:
         self._phase = 0
+
+def ensure_n_times(n: int, delay: float):
+    def wrapper(func):
+        func.ensure = (n, delay)
+        return func
+    return wrapper

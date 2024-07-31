@@ -1,13 +1,12 @@
-import logging
 import time
-from typing import Type
+from typing import Tuple, Type
 
 import cv2
 import numpy as np
 
 import simplecv as scv
 from data import Data
-from macro.macro import Macro
+from macro.macro import Macro, ensure_n_times
 
 PLACE_ID = 6161235818
 
@@ -61,24 +60,23 @@ class TwistedMacro(Macro):
             self.await_menu,
             self.navigate_menu,
             self.await_game,
+            self.navigate_game,
             self.open_data_menu,
             self.get_data,
         ]
 
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
-        self.roblox.start_roblox(place_id=PLACE_ID, 
+        self.roblox.start_roblox(place_id=PLACE_ID,
                                  server=self.config.get(["roblox", self.roblox.name, "server"]),
                                  bloxstrap=self.config.get(["bloxstrap"]))
 
         return True
 
+    @ensure_n_times(n=3, delay=.3)
     def await_menu(self, img: np.ndarray) -> bool:
         # WAIT FOR TWISTED TO LOAD INTO MENU
-        if np.all(img == Colors.GREEN, axis=2).any():
-            time.sleep(1)
-            return True
-        return False
+        return bool(np.all(img == Colors.GREEN, axis=2).any())
 
     def navigate_menu(self, img: np.ndarray) -> bool:
         # NAVIGATE MENU
@@ -94,12 +92,10 @@ class TwistedMacro(Macro):
 
         self.controller.async_click(self.roblox.hwnd, play_button)
 
-        time.sleep(3)
-
         return True
 
-    def await_game(self, img: np.ndarray) -> bool:
-        # WAIT TO LOAD INTO GAME
+    def get_game_status(self, img: np.ndarray) -> Tuple[bool]:
+        # HELPER FUNCTION
         H, W, *_ = img.shape
 
         rect_cutout = img[:, W//2 - min(H, W)//2:W//2 + min(H, W)//2]
@@ -107,10 +103,19 @@ class TwistedMacro(Macro):
         loaded_game = np.all(img[80:100, W - 44] == Colors.GRAY_BUTTON, axis=1).any()
         loaded_select = .5 < np.count_nonzero(np.argmax(rect_cutout, axis=2) == 1) / np.multiply(*rect_cutout.shape[:2])
 
-        if loaded_game or loaded_select:
-            logging.debug(f"{loaded_game=}")
-            logging.debug(f"{loaded_select=}")
+        return bool(loaded_select), bool(loaded_game)
 
+    @ensure_n_times(n=3, delay=.3)
+    def await_game(self, img: np.ndarray) -> bool:
+        # WAIT TO LOAD INTO GAME
+        return True in self.get_game_status(img)
+
+    def navigate_game(self, img: np.ndarray) -> bool:
+        H, W, *_ = img.shape
+
+        loaded_select, loaded_game = self.get_game_status(img)
+
+        if loaded_game or loaded_select:
             if loaded_select:
                 # SELECT PRIOR
                 time.sleep(.5)
