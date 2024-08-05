@@ -52,12 +52,14 @@ class MacroHandler(threading.Thread):
 
                 logging.info(data)
 
+                for f in self._data_callbacks: f(data)
+
                 if self.check_conditions(data):
                     logging.info("Conditions passed")
 
                     self.webhook.send(roblox_type=self.roblox.name, data=data, data_image=data_img, code_image=code_img)
 
-                    [f() for f in self._pause_callbacks]
+                    for f in self._pause_callbacks: f()
 
                 self._time = time.time()
             except Exception as e:
