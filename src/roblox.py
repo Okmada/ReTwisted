@@ -1,4 +1,5 @@
 import ctypes
+import ctypes.wintypes
 import enum
 import logging
 import os
