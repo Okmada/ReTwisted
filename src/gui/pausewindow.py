@@ -49,10 +49,10 @@ class PauseWindow:
             .pack(side=tk.RIGHT, padx=10, fill=tk.X, expand=True)
 
     def unpause_all(self) -> None:
-        [f() for f in self.unpause_events]
+        for f in self.unpause_events: f()
 
     def pause_all(self) -> None:
-        [f() for f in self.pause_events]
+        for f in self.pause_events: f()
 
     def start_timer(self):
         timer_mins = self.config.get(["resume timer"])
