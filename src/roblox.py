@@ -87,8 +87,19 @@ class Roblox:
         else:
             raise Exception("Could not find roblox")
 
-    def close_roblox(self):
+    def close_roblox(self, retries=20):
+        if not self._hwnd:
+            return
+
         user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
+
+        for _ in range(retries):
+            if not user32.FindWindowW(self._roblox_type.name, "Roblox"):
+                self._hwnd = 0
+                break
+            time.sleep(1)
+        else:
+            logging.error("Could not close Roblox.")
 
     def is_crashed(self):
         if self._hwnd == 0:
