@@ -8,6 +8,10 @@ from data import Data
 from roblox import Roblox
 
 
+class PhaseError(Exception):
+    def __init__(self, phase: int) -> None:
+        super().__init__(f"Encountered exception in phase {phase}")
+
 class Macro:
     def __init__(self, roblox: Roblox, controller: Controller, config: ConfigManager) -> None:
         self.roblox = roblox
@@ -20,7 +24,11 @@ class Macro:
 
     def __call__(self, *args, **kwargs) -> bool | Type[Data]:
         func = self.steps[self._phase]
-        return_val = func(*args, **kwargs)
+
+        try:
+            return_val = func(*args, **kwargs)
+        except Exception as e:
+            raise PhaseError(self._phase) from e
 
         assert return_val is not None, "Return value is None"
 

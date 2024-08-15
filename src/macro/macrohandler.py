@@ -63,8 +63,7 @@ class MacroHandler(threading.Thread):
 
                 self._time = time.time()
             except Exception as e:
-                logging.error(f"Encountered exception in phase {self._macro._phase}")
-                logging.error(str(e))
+                logging.exception(e)
 
                 self.roblox.close_roblox()
 
