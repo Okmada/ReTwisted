@@ -1,3 +1,4 @@
+import functools
 import time
 from typing import List, Type
 
@@ -73,4 +74,13 @@ def fail_n_times(n: int, delay: float, steps_return: int):
     def wrapper(func):
         func.max_tries = (n, delay, steps_return)
         return func
+    return wrapper
+
+def safe_execution(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            return False
     return wrapper
