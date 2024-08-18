@@ -9,7 +9,7 @@ class ScrollFrame(tk.Frame):
         scrollbar = tk.Scrollbar(self, orient=tk.VERTICAL, command=canvas.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.configure(yscrollcommand=scrollbar.set, highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
 
         self.update()
