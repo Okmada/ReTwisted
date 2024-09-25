@@ -38,7 +38,7 @@ class Webhook:
                 "fields": [
                     {
                         "name": "Weather :cloud:",
-                        "value": f"```{'\n'.join([f'{key}: {item}' for key, item in data.items()])}```",
+                        "value": "```" + "\n".join([f"{key}: {item}" for key, item in data.items()]) + "```",
                         "inline": True
                     },
                     *([{
