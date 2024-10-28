@@ -15,6 +15,8 @@ WM_CLOSE = 0x10
 
 SRCCOPY = 0xCC0020
 
+MONITOR_DEFAULTTOPRIMARY = 0x1
+
 class BitmapInfoHeader(ctypes.Structure):
     _fields_ = [("biSize", ctypes.c_ulong),
                 ("biWidth", ctypes.c_long),
@@ -38,10 +40,11 @@ class BitmapInfo(ctypes.Structure):
     _fields_ = [("bmiHeader", BitmapInfoHeader),
                 ("bmiColors", RGBQuad)]
 
-def get_window_rect(hwnd):
-    rect = ctypes.wintypes.RECT()
-    user32.GetWindowRect(hwnd, ctypes.byref(rect))
-    return rect.left, rect.top, rect.right, rect.bottom
+class MonitorInfo(ctypes.Structure):
+    _fields_ = [("cbSize", ctypes.c_uint),
+                ("rcMonitor", ctypes.wintypes.RECT),
+                ("rcWork", ctypes.wintypes.RECT),
+                ("dwFlags", ctypes.c_uint)]
 
 class RobloxTypes(enum.Enum):
     WINDOWSCLIENT = "Roblox Player"
@@ -117,13 +120,32 @@ class Roblox:
         else:
             return False
 
+    def is_fullscreen(self) -> bool:
+        if not self._hwnd:
+            return False
+
+        window_monitor = user32.MonitorFromWindow(self._hwnd, MONITOR_DEFAULTTOPRIMARY)
+
+        info = MonitorInfo()
+        info.cbSize = ctypes.sizeof(info)
+
+        if not user32.GetMonitorInfoW(window_monitor, ctypes.byref(info)):
+            return False
+
+        window_rect = ctypes.wintypes.RECT()
+
+        if not user32.GetWindowRect(self._hwnd, ctypes.byref(window_rect)):
+            return False
+
+        return bytes(window_rect) == bytes(info.rcMonitor)
+
     def is_chat_open(self):
         img = self.get_screenshot()
 
-        chat_slice = img[42:63, 73:94]
+        chat_slice = img[5:35, 61:91]
         ratio = np.count_nonzero(np.all(chat_slice == (255, 255, 255), axis=2)) / np.multiply(*chat_slice.shape[:2])
 
-        return ratio >= .45
+        return ratio >= .25
 
     def get_screenshot(self):
         if not user32.IsWindow(self._hwnd):
@@ -131,8 +153,10 @@ class Roblox:
 
         scale_factor = user32.GetDpiForWindow(self._hwnd) / 96.0
 
-        left, top, right, bot = get_window_rect(self._hwnd)
-        unscaled_w, unscaled_h = right - left, bot - top
+        rect = ctypes.wintypes.RECT()
+        user32.GetWindowRect(self._hwnd, ctypes.byref(rect))
+
+        unscaled_w, unscaled_h = rect.right - rect.left, rect.bottom - rect.top
         scaled_w, scaled_h = round(unscaled_w * scale_factor), round(unscaled_h * scale_factor)
 
         hwndDC = user32.GetWindowDC(self._hwnd)
@@ -168,9 +192,20 @@ class Roblox:
         img.shape = (scaled_h, scaled_w, 4)
         img = img[:, :, :3]
 
-        img = cv2.resize(img, (unscaled_w, unscaled_h), interpolation=cv2.INTER_NEAREST)
+        edge, topedge = self._borders
+
+        if not self.is_fullscreen():
+            scaled_edge, scaled_topedge = round(edge * scale_factor), round(topedge * scale_factor)
+            img = img[scaled_topedge:-scaled_edge, scaled_edge:-scaled_edge]
+
+        out_dims = int(unscaled_w - 2 * edge), int(unscaled_h - (edge + topedge))
+        img = cv2.resize(img, out_dims, interpolation=cv2.INTER_NEAREST)
 
         return img.astype(dtype=np.uint8)
+
+    def offset_point(self, point):
+        ox, oy = map(round, self._borders)
+        return (point[0] + ox, point[1] + oy)
 
     @property
     def friendly_name(self):
@@ -183,3 +218,26 @@ class Roblox:
     @property
     def hwnd(self):
         return self._hwnd
+
+    @property
+    def _borders(self):
+        if self.is_fullscreen():
+            return 0, 0
+
+        crect = ctypes.wintypes.RECT()
+        user32.GetClientRect(self._hwnd, ctypes.byref(crect))
+
+        rect = ctypes.wintypes.RECT()
+        user32.GetWindowRect(self._hwnd, ctypes.byref(rect))
+
+        edge = (rect.right - rect.left - crect.right + crect.left) / 2
+        match self._roblox_type:
+            case RobloxTypes.ApplicationFrameWindow:
+                if user32.IsZoomed(self._hwnd):
+                    topedge = 40
+                else:
+                    topedge = 33
+            case RobloxTypes.WINDOWSCLIENT:
+                topedge = 31
+
+        return edge, topedge

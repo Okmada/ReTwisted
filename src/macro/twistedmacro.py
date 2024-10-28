@@ -88,7 +88,7 @@ class TwistedMacro(Macro):
 
         green_contour = max(green_contours, key=cv2.contourArea)
 
-        play_button = scv.get_contour_center(green_contour)
+        play_button = self.roblox.offset_point(scv.get_contour_center(green_contour))
 
         self.controller.async_click(self.roblox.hwnd, play_button)
 
@@ -100,7 +100,7 @@ class TwistedMacro(Macro):
 
         rect_cutout = img[:, W//2 - min(H, W)//2:W//2 + min(H, W)//2]
 
-        loaded_game = np.all(img[80:100, W - 44] == Colors.GRAY_BUTTON, axis=1).any()
+        loaded_game = np.all(img[40:60, W - 35] == Colors.GRAY_BUTTON, axis=1).any()
         loaded_select = .5 < np.count_nonzero(np.argmax(rect_cutout, axis=2) == 1) / np.multiply(*rect_cutout.shape[:2])
 
         return bool(loaded_select), bool(loaded_game)
@@ -120,13 +120,13 @@ class TwistedMacro(Macro):
                 # SELECT PRIOR
                 time.sleep(.5)
 
-                point = (round(W * 0.5 + 3), round(H * 0.69 + 3))
+                point = self.roblox.offset_point((round(W * 0.5 + 3), round(H * 0.69 + 3)))
                 self.controller.async_click(self.roblox.hwnd, point)
                 self.controller.sync_click(self.roblox.hwnd, point)
 
                 time.sleep(1)
 
-                point = (round(W * 0.5 + H * 0.12 + 3), round(H * 0.45 + 10))
+                point = self.roblox.offset_point((round(W * 0.5 + H * 0.12 + 3), round(H * 0.45 + 10)))
                 self.controller.async_click(self.roblox.hwnd, point)
                 self.controller.sync_click(self.roblox.hwnd, point)
 
@@ -140,12 +140,12 @@ class TwistedMacro(Macro):
     def open_data_menu(self, img: np.ndarray) -> bool:
         # CLOSE CHAT
         if self.roblox.is_chat_open():
-            self.controller.sync_click(self.roblox.hwnd, (83, 52))
+            self.controller.sync_click(self.roblox.hwnd, self.roblox.offset_point((76, 20)))
 
         # OPEN DATA MENU
         H, W, *_ = img.shape
 
-        point = (round(W * 0.49374 - 67.67), 118)
+        point = self.roblox.offset_point((round(W * 0.5 - 67.67), 85))
 
         self.controller.sync_click(self.roblox.hwnd, point)
 
@@ -293,7 +293,7 @@ class TwistedMacro(Macro):
             else:
                 data_output.append(None)
 
-        code_row = img[40:90]
+        code_row = img[:60]
         code_row_mask = np.all(code_row == Colors.GRAY_1, axis=2).astype(np.uint8) * 255
 
         code_contour = scv.find_contours(code_row_mask)
