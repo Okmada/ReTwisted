@@ -71,7 +71,7 @@ class Roblox:
                 path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
 
                 if bloxstrap:
-                    bloxstrap_path = os.path.join(programs_dir, "Bloxstrap\\Play Roblox.lnk")
+                    bloxstrap_path = os.path.join(programs_dir, "Bloxstrap.lnk")
 
                     if os.path.isfile(bloxstrap_path):
                         path = bloxstrap_path
