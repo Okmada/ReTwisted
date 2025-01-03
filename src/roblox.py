@@ -55,11 +55,14 @@ class RobloxTypes(enum.Enum):
 
 class Roblox:
     def __init__(self, roblox_type: RobloxTypes):
+        assert roblox_type in RobloxTypes
+
         self._roblox_type = roblox_type
         self._hwnd: int = 0
 
-    def start_roblox(self, place_id, server="", bloxstrap=False):
-        arg = f"roblox://placeId={place_id}" + (f"&linkCode={server}" if server else "")
+    def start_roblox(self, arg, bloxstrap=False):
+        if not self.is_installed():
+            raise Exception("Roblox is not installed")
 
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
@@ -70,11 +73,10 @@ class Roblox:
                 if bloxstrap:
                     bloxstrap_path = os.path.join(programs_dir, "Bloxstrap\\Play Roblox.lnk")
 
-                    if os.path.isfile(bloxstrap_path): path = bloxstrap_path
-                    else: logging.warn("Could not find Bloxstrap, using Roblox Player instead.")
-
-                if not os.path.isfile(path):
-                    raise Exception("Roblox player is not installed")
+                    if os.path.isfile(bloxstrap_path):
+                        path = bloxstrap_path
+                    else:
+                        logging.warning("Could not find Bloxstrap, using Roblox Player instead.")
 
                 os.startfile(path, arguments=arg)
             case RobloxTypes.ApplicationFrameWindow:
@@ -83,6 +85,16 @@ class Roblox:
                 return None
 
         self.find_roblox()
+
+    def join_place(self, place_id: str, linkCode="", bloxstrap=False):
+        assert place_id.isnumeric()
+        arg = f"roblox://placeId={place_id}" + (f"&linkCode={linkCode}" if linkCode else "")
+        self.start_roblox(arg, bloxstrap=bloxstrap)
+
+    def join_server(self, code: str, bloxstrap=False):
+        assert len(code) == 32
+        arg = f"roblox://navigation/share_links?code={code}&type=Server"
+        self.start_roblox(arg, bloxstrap=bloxstrap)
 
     def find_roblox(self, retries=20):
         for _ in range(retries):
@@ -106,6 +118,17 @@ class Roblox:
             time.sleep(1)
         else:
             logging.error("Could not close Roblox.")
+
+    def is_installed(self):
+        match self._roblox_type:
+            case RobloxTypes.WINDOWSCLIENT:
+                programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
+                path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
+                return os.path.isfile(path)
+            case RobloxTypes.ApplicationFrameWindow:
+                return bool(os.popen("powershell.exe Get-AppxPackage -Name ROBLOXCORPORATION.ROBLOX").read().strip())
+            case _:
+                return False
 
     def is_crashed(self):
         if self._hwnd == 0:
@@ -149,7 +172,7 @@ class Roblox:
         ratio = np.count_nonzero(np.all(chat_slice == CHAT_COLOR, axis=2)) / np.multiply(*chat_slice.shape[:2])
 
         return ratio >= .25
-    
+
     def get_chat_pos(self):
         return self.offset_point(((CHAT_BB["left"] + CHAT_BB["right"]) // 2, (CHAT_BB["top"] + CHAT_BB["bottom"]) // 2))
 

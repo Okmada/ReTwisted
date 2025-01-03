@@ -66,7 +66,7 @@ class RobloxFrame:
         server_frame.pack(fill=tk.X, side=tk.TOP)
 
         server = config.get(config_path + ["server"])
-        server_url_var = tk.StringVar(value=f"privateServerLinkCode={server}" if server else "")
+        server_url_var = tk.StringVar(value=f"code={server}" if server else "")
 
         tk.Label(server_frame, text="Server url:") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
@@ -74,7 +74,7 @@ class RobloxFrame:
         server_url_entry.pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, expand=True)
 
         def write_verify_url(*e):
-            code = re.search(".*privateServerLinkCode=([0-9]{32}).*", server_url_var.get())
+            code = re.search(".*code=([a-z0-9]{32}).*", server_url_var.get())
 
             color = "#54de01" if code else "red"
             server_url_entry.configure(highlightbackground=color, highlightcolor=color)

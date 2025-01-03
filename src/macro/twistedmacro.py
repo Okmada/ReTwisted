@@ -8,7 +8,7 @@ import simplecv as scv
 from data import Data
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 
-PLACE_ID = 6161235818
+PLACE_ID = "6161235818"
 
 class Colors:
     GREEN = (127, 255, 170)
@@ -67,9 +67,12 @@ class TwistedMacro(Macro):
 
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
-        self.roblox.start_roblox(place_id=PLACE_ID,
-                                 server=self.config.get(["roblox", self.roblox.name, "server"]),
-                                 bloxstrap=self.config.get(["bloxstrap"]))
+        server = self.config.get(["roblox", self.roblox.name, "server"])
+        bloxstrap = self.config.get(["bloxstrap"])
+        if server:
+            self.roblox.join_server(server, bloxstrap=bloxstrap)
+        else:
+            self.roblox.join_place(PLACE_ID, bloxstrap=bloxstrap)
 
         return True
 

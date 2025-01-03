@@ -43,7 +43,7 @@ class Webhook:
                     },
                     *([{
                         "name": "Server link :desktop:",
-                        "value": f"[Link to server](https://www.roblox.com/games/6161235818/Twisted-BETA?privateServerLinkCode={server})",
+                        "value": f"[Link to server](https://www.roblox.com/share?code={server}&type=Server)",
                         "inline": True
                     }] if server and share_link else [])
                 ],
