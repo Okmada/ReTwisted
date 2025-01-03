@@ -194,13 +194,7 @@ class Roblox:
         saveBitMap = gdi32.CreateCompatibleBitmap(hwndDC, scaled_w, scaled_h)
         gdi32.SelectObject(mfcDC, saveBitMap)
 
-        match self._roblox_type:
-            case RobloxTypes.WINDOWSCLIENT:
-                gdi32.BitBlt(mfcDC, 0, 0, scaled_w, scaled_h, hwndDC, 0, 0, SRCCOPY)
-            case RobloxTypes.ApplicationFrameWindow:
-                user32.PrintWindow(self._hwnd, mfcDC, 2)
-            case _:
-                return None
+        user32.PrintWindow(self._hwnd, mfcDC, 2)
 
         bmpinfo = BitmapInfo()
         bmpinfo.bmiHeader.biSize = ctypes.sizeof(BitmapInfoHeader)
