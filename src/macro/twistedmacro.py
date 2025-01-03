@@ -140,7 +140,7 @@ class TwistedMacro(Macro):
     def open_data_menu(self, img: np.ndarray) -> bool:
         # CLOSE CHAT
         if self.roblox.is_chat_open():
-            self.controller.sync_click(self.roblox.hwnd, self.roblox.offset_point((76, 20)))
+            self.controller.sync_click(self.roblox.hwnd, self.roblox.get_chat_pos())
 
         # OPEN DATA MENU
         H, W, *_ = img.shape
