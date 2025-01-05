@@ -1,11 +1,50 @@
+import ctypes
+import ctypes.wintypes
 import datetime
 import re
+import threading
 import tkinter as tk
+
+import cv2
 
 from config import ConfigManager
 from constants import FONT
 from data import Data
 from macro.macrohandler import MacroHandler
+
+CF_DIB = 8
+NO_ERROR = 0
+GMEM_MOVEABLE = 0x0002
+
+kernel32 = ctypes.windll.kernel32
+user32 = ctypes.windll.user32
+
+GlobalLock = kernel32.GlobalLock
+GlobalLock.argtypes = ctypes.wintypes.HGLOBAL,
+GlobalLock.restype = ctypes.wintypes.LPVOID
+GlobalAlloc = kernel32.GlobalAlloc
+GlobalAlloc.argtypes = ctypes.wintypes.UINT, ctypes.c_size_t
+GlobalAlloc.restype = ctypes.wintypes.HGLOBAL
+GlobalUnlock = kernel32.GlobalUnlock
+GlobalUnlock.argtypes = ctypes.wintypes.HGLOBAL,
+GlobalUnlock.restype = ctypes.wintypes.BOOL
+
+OpenClipboard = user32.OpenClipboard
+OpenClipboard.argtypes = ctypes.wintypes.HWND,
+OpenClipboard.restype = ctypes.wintypes.BOOL
+GetClipboardData = user32.GetClipboardData
+GetClipboardData.argtypes = ctypes.wintypes.UINT,
+GetClipboardData.restype = ctypes.wintypes.HANDLE
+SetClipboardData = user32.SetClipboardData
+SetClipboardData.argtypes = ctypes.wintypes.UINT, ctypes.wintypes.HANDLE
+SetClipboardData.restype = ctypes.wintypes.HANDLE
+CloseClipboard = user32.CloseClipboard
+CloseClipboard.argtypes = ()
+CloseClipboard.restype = ctypes.wintypes.BOOL
+EmptyClipboard = user32.EmptyClipboard
+EmptyClipboard.argtypes = ()
+EmptyClipboard.restype = ctypes.wintypes.BOOL
+
 
 
 class RobloxFrame:
@@ -84,3 +123,29 @@ class RobloxFrame:
 
         server_url_var.trace_add("write", write_verify_url)
         write_verify_url()
+
+        def copy_screenshot(button):
+            if not macro.roblox.hwnd:
+                if hasattr(button, "timer"):
+                    button.timer.cancel()
+                button.timer = threading.Timer(1.5, lambda: screenshot_button.config(text=screenshot_button.original_text))
+                button.timer.start()
+                button.config(text="Roblox not found")
+                return
+
+            image = macro.roblox.get_screenshot()
+            buffer = cv2.imencode(".bmp", image)[1].tobytes()[14:]
+
+            OpenClipboard(None)
+            EmptyClipboard()
+            hmem = GlobalAlloc(GMEM_MOVEABLE, len(buffer))
+            pmem = GlobalLock(hmem)
+            ctypes.memmove(pmem, buffer, len(buffer))
+            GlobalUnlock(hmem)
+            SetClipboardData(CF_DIB, hmem)
+            CloseClipboard()
+
+        screenshot_button = tk.Button(info_frame_bottom, text="Copy screenshot")
+        screenshot_button.original_text = screenshot_button.cget("text")
+        screenshot_button.config(command=lambda: copy_screenshot(screenshot_button))
+        screenshot_button.pack(fill=tk.X, side=tk.TOP, pady=(3, 0))
