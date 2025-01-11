@@ -11,9 +11,9 @@ Contributions are appreciated.
 
 ## Running
 
-- Download Roblox Player from Roblox website and UWP Roblox from MS Store.
+- Download Roblox Player from Roblox website and Roblox from MS Store.
 
-- Make sure to have Roblox protocol default to UWP Roblox from MS Store.
+- Make sure to have Roblox protocol default to Roblox from MS Store.
 
 - Recommended layout is having each Roblox on one side of the screen
 

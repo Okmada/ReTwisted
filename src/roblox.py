@@ -51,7 +51,7 @@ class MonitorInfo(ctypes.Structure):
 
 class RobloxTypes(enum.Enum):
     WINDOWSCLIENT = "Roblox Player"
-    ApplicationFrameWindow = "UWP Roblox"
+    ApplicationFrameWindow = "Microsoft Roblox"
 
 class Roblox:
     def __init__(self, roblox_type: RobloxTypes):
