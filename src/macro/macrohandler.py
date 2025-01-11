@@ -67,6 +67,8 @@ class MacroHandler(threading.Thread):
 
                 self.roblox.close_roblox()
 
+                time.sleep(5)
+
                 self._macro.restart()
                 self._time = time.time()
 
