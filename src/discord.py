@@ -1,4 +1,5 @@
 import json
+import logging
 
 import cv2
 import requests
@@ -64,4 +65,9 @@ class Webhook:
             'payload_json': (None, json.dumps(payload)),
         }
 
-        return requests.post(url, files=files)
+        try:
+            return requests.post(url, files=files)
+        except Exception as e:
+            logging.error("Could not send message to Discord webhook.")
+            logging.exception(e)
+            return
