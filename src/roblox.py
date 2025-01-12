@@ -3,6 +3,7 @@ import ctypes.wintypes
 import enum
 import logging
 import os
+import subprocess
 import time
 
 import cv2
@@ -66,6 +67,8 @@ class Roblox:
 
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
+                subprocess.call(["powershell", "-Command", 'Get-Process -Name "RobloxPlayerBeta" -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}'], stderr=None)
+
                 programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
 
                 path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
