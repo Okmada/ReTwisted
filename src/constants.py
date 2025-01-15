@@ -1,3 +1,3 @@
 NAME = "ReTwisted"
-VERSION = "2.1.1"
+VERSION = "2.1.2"
 FONT = "Segoe UI"
