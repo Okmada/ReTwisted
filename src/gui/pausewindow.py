@@ -24,6 +24,7 @@ class PauseWindow:
     def _setup(self):
         self.root.title(f"{NAME} - pop up")
         self.root.geometry("360x150")
+        self.root.attributes("-topmost", True)
         self.root.resizable(False, False)
 
         self.root.protocol("WM_DELETE_WINDOW", self.close)
