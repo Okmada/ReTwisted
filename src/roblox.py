@@ -5,7 +5,9 @@ import logging
 import os
 import subprocess
 import time
-
+import psutil
+import win32api
+import win32con
 import cv2
 import numpy as np
 
@@ -61,14 +63,40 @@ class Roblox:
         self._roblox_type = roblox_type
         self._hwnd: int = 0
 
+    def closeRobloxPIDs(self):
+            processes = []
+            for proc in psutil.process_iter(['name', 'pid']):
+                if proc.info['name'] == "RobloxPlayerBeta.exe":
+                    try:
+                        print('good 78')
+                        with proc.oneshot():
+                            cpu_usage = proc.cpu_percent(interval=0.1)
+                            print(cpu_usage) 
+                        processes.append((proc, cpu_usage))
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+    
+            processes.sort(key=lambda x: x[1], reverse=True)
+    
+            for process, cpu_usage in processes[1:]:
+                try:
+                    pid = process.pid
+                    handle = win32api.OpenProcess(win32con.PROCESS_TERMINATE, False, pid)
+                    win32api.TerminateProcess(handle, 1) 
+                    win32api.CloseHandle(handle)
+                    print(f"Terminated process PID={pid} with CPU={cpu_usage}")
+                except Exception as e:
+                    print(f"Failed to terminate process PID={process.pid}: {e}")
+
+    
     def start_roblox(self, arg, bloxstrap=False):
         if not self.is_installed():
             raise Exception("Roblox is not installed")
 
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
-                subprocess.call(["powershell", "-Command", 'Get-Process -Name "RobloxPlayerBeta" -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}'], stderr=None)
-
+                #subprocess.call(["powershell", "-Command", 'Get-Process -Name "RobloxPlayerBeta" -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}'], stderr=None)
+                self.closeRobloxPIDs()
                 programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
 
                 path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
