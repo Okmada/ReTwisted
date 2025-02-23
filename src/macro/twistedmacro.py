@@ -79,7 +79,9 @@ class TwistedMacro(Macro):
     @ensure_n_times(n=3, delay=.3)
     def await_menu(self, img: np.ndarray) -> bool:
         # WAIT FOR TWISTED TO LOAD INTO MENU
-        return bool(np.all(img == Colors.GREEN, axis=2).any())
+        cutout = img[:, :int(0.22 * img.shape[1])]
+
+        return bool(np.all(cutout == Colors.GREEN, axis=2).any())
 
     def navigate_menu(self, img: np.ndarray) -> bool:
         # NAVIGATE MENU
