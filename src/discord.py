@@ -61,7 +61,7 @@ class Webhook:
         files = {
             "_code.png": ("code.png", cv2.imencode(".png", code_image)[1].tostring()),
             "_data.png": ("data.png", cv2.imencode(".png", data_image)[1].tostring()),
-            "_icon.png": ("icon.png", open(utils.resource_path("icon.png"), "rb").read()),
+            "_icon.png": ("icon.png", open(utils.resource_path("assets/icon.png"), "rb").read()),
             'payload_json': (None, json.dumps(payload)),
         }
 

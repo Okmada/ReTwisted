@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    runs-on: windows-latest
+    needs: build
+
+    permissions:
+      contents: write
+
+    env:
+      app_name: "ReTwisted-${{ github.event.release.tag_name }}.exe"
+      run_link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+
+      - name: Rename release build
+        working-directory: artifact
+        run: mv ReTwisted-*.exe ${{ env.app_name }}
+
+      - name: Add footer to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          footer: "\n---\n\nExe files are automatically built via Github actions\nLink to build action: ${{ env.run_link }}"
+        run: $(gh release view ${{ github.event.release.tag_name }} --json body -q .body) + "${{ env.footer }}" | gh release edit ${{ github.event.release.tag_name }} -F -
+
+      - name: Upload to release
+        working-directory: artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ env.app_name }}

@@ -18,7 +18,7 @@ class MainWindow:
         self.root.title(NAME)
         self.root.geometry("850x500")
         self.root.resizable(True, True)
-        self.root.iconphoto(True, tk.PhotoImage(file=utils.resource_path("icon.png")))
+        self.root.iconphoto(True, tk.PhotoImage(file=utils.resource_path("assets/icon.png")))
 
         self.root.defaultFont = tkinter.font.nametofont("TkDefaultFont")
         self.root.defaultFont.configure(family=FONT, size=12)
