@@ -1,4 +1,5 @@
 import functools
+import logging
 import time
 from typing import List, Type
 
@@ -90,5 +91,6 @@ def safe_execution(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
+            logging.info("Exception in safe execute: " + str(e))
             return False
     return wrapper
