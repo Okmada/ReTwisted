@@ -9,6 +9,7 @@ from datalogger import DataLogger
 from discord import Webhook
 from gui import configwindow, mainwindow, pausewindow, robloxframe
 from macro.macrohandler import MacroHandler
+from odr import ODR
 from roblox import Roblox, RobloxTypes
 
 # SETUP LOGGING
@@ -46,6 +47,10 @@ gui_pause = pausewindow.PauseWindow(root, config)
 gui_pause.pause_events = gui_main.pause_events
 gui_pause.unpause_events = gui_main.unpause_events
 gui_main.unpause_events.append(gui_pause.close)
+
+# INITIALIZE ODR
+ODR().load()
+ODR().train()
 
 # CREATE CONTROLLER
 controller = Controller()

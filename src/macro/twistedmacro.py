@@ -7,6 +7,7 @@ import numpy as np
 import simplecv as scv
 from data import Data
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
+from odr import ODR
 
 PLACE_ID = "6161235818"
 
@@ -224,20 +225,30 @@ class TwistedMacro(Macro):
                 color_text = (color_text * (255 / np.max(color_text))).astype(np.uint8)
                 color_text[np.where(color_text <= 8)] = 0
 
-                cont_img[np.where(color_text)] = 0
-                cont_img[np.where(cont_img <= 32)] = 0
-                cont_img = self._remove_dots(cont_img)
-                cont_img = scv.crop_image(cont_img, top=False, bottom=False)
-
                 color_text = scv.crop_image(color_text, top=False, bottom=False)
                 color_text = color_text[:, :-round(next(unit_coef_iterator) * color_text.shape[0])]
 
-                merged_img = np.concatenate([cont_img,
-                                                np.zeros([cont_img.shape[0]]*2, np.uint8),
-                                                color_text], axis=1)
+                color_text = cv2.resize(color_text, (color_text.shape[1] * 16, color_text.shape[0] * 16), interpolation=cv2.INTER_CUBIC)
+                color_text[np.where(color_text <= 140)] = 0
 
-                number = scv.read_number(merged_img)
-                data_output.append(number)
+                scv.split_characters(color_text)
+
+                characters_contours = scv.find_contours(color_text)
+                characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
+
+                number = ""
+                for character_contour in characters_contours:
+                    character_img = scv.extract_contour(color_text, character_contour)
+
+                    if character_img.shape[0] / color_text.shape[0] < 0.5:
+                        if "." not in number:
+                            number += "."
+                        continue
+
+                    result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
+                    number += str(result)
+
+                data_output.append(number[::-1])
 
         # COMPOSITES
         composites = scv.extract_contour(img, composites_contour)
@@ -246,14 +257,26 @@ class TwistedMacro(Macro):
         composites = cv2.cvtColor(composites, cv2.COLOR_BGR2GRAY)
         composites[np.where(composites < 40)] = 0
 
-        stp_img = scv.crop_image(composites[:, :composites.shape[1]//2])
-        vtp_img = scv.crop_image(composites[:, composites.shape[1]//2:])
+        for composite in (composites[:, :composites.shape[1]//2], composites[:, composites.shape[1]//2:]):
+            composite = scv.crop_image(composite)
 
-        stp_img = self._remove_dots(stp_img)
-        vtp_img = self._remove_dots(vtp_img)
+            composite = cv2.resize(composite, (composite.shape[1]*8, composite.shape[0]*8), interpolation=cv2.INTER_CUBIC)
+            composite[np.where(composite <= 140)] = 0
 
-        data_output.append(scv.read_number(stp_img))
-        data_output.append(scv.read_number(vtp_img))
+            characters_contours = scv.find_contours(composite)
+            characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
+
+            number = ""
+            for character_contour in characters_contours:
+                character_img = scv.extract_contour(composite, character_contour)
+
+                if character_img.shape[0] / composite.shape[0] < 0.5:
+                    break
+
+                result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
+                number += str(result)
+
+            data_output.append(number[::-1])
 
         # ANGLE STORM MOTION
         # hodo_img = scv.extract_contour(img, sub_data_contours[2])
@@ -315,17 +338,3 @@ class TwistedMacro(Macro):
         data_trans = scv.crop_image(scv.mask_transparent(img, full_data_mask))
 
         return TwistedData(*data_output), data_trans, code_trans
-
-    @staticmethod
-    def _remove_dots(image: np.ndarray) -> np.ndarray:
-        H, W, *_ = image.shape
-        to_delete = []
-
-        contours = scv.find_contours(image)
-        for contour in contours:
-            cont_x, cont_y, cont_w, cont_h = cv2.boundingRect(contour)
-
-            if 0.5 > cont_h / H:
-                to_delete += range(cont_x, cont_x + cont_w)
-
-        return np.delete(image, to_delete, axis=1)

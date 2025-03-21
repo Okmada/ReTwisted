@@ -1,10 +1,7 @@
-import re
 from typing import List, Tuple
 
 import cv2
 import numpy as np
-
-import ocr
 
 
 def find_contours(image: np.ndarray) -> List[Tuple[Tuple[int, int]]]:
@@ -48,22 +45,25 @@ def mask_transparent(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
     return transparent_image
 
-def read_text(image: np.ndarray) -> str:
-    scale = 325 / image.shape[0]
+def split_characters(img: np.ndarray) -> None:
+    cropped = crop_image(img)
 
-    image = cv2.copyMakeBorder(image, *[int(image.shape[0] * 0.35)] * 4, cv2.BORDER_CONSTANT)
-    new_dims = [round(dim * scale) for dim in image.shape[:2]][::-1]
-    image = cv2.resize(image, new_dims, interpolation=cv2.INTER_LINEAR)
+    characters_contours = find_contours(cropped)
 
-    return ocr.ocr(image)
+    for contour in characters_contours:
+        hull = cv2.convexHull(contour, returnPoints=False)
+        defects = cv2.convexityDefects(contour, hull)
 
-def read_number(image: np.ndarray) -> str:
-    text = read_text(image)
+        if defects is not None:
+            short_lines_filter = filter(lambda e: np.linalg.norm(np.array(contour[e[0][0]][0]) - np.array(contour[e[0][1]][0])) > cropped.shape[0]//2, defects)
+            vertical_lines_filter = filter(lambda e: abs(np.arctan2(*(np.array(contour[e[0][0]][0]) - np.array(contour[e[0][1]][0]))[::-1]) % np.pi - (np.pi / 2)) > np.pi / 4, short_lines_filter)
+            sorted_defects = sorted(vertical_lines_filter, key=lambda e: np.array(contour[e[0][2]][0])[0])
 
-    text = text.replace("Ø", "0")
-    text = text.replace("ø", "0")
-    text = text.replace("l", "1")
+            for i in range(0, 2 * (len(sorted_defects) // 2), 2):
+                s1, e1, f1, d1 = sorted_defects[i][0]
+                s2, e2, f2, d2 = sorted_defects[i + 1][0]
 
-    nums = re.findall("([0-9]+[.]{1}[0-9]+|[0-9]+)", text)
+                far1 = tuple(contour[f1][0])
+                far2 = tuple(contour[f2][0])
 
-    return nums[-1] if nums else "0"
+                cv2.line(cropped, far1, far2, 0, 10)
