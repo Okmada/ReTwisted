@@ -83,13 +83,13 @@ class TwistedMacro(Macro):
         # WAIT FOR TWISTED TO LOAD INTO MENU
         cutout = img[:, :int(0.22 * img.shape[1])]
 
-        return bool(np.all(cutout == Colors.GREEN, axis=2).any())
+        return scv.has_color(cutout, Colors.GREEN)
 
     def navigate_menu(self, img: np.ndarray) -> bool:
         # NAVIGATE MENU
         cutout = img[:, :int(0.22 * img.shape[1])]
 
-        green_mask = np.all(cutout == Colors.GREEN, axis=2).astype(np.uint8) * 255
+        green_mask = scv.mask_color(cutout, Colors.GREEN)
 
         green_contours = scv.find_contours(green_mask)
 
@@ -107,7 +107,7 @@ class TwistedMacro(Macro):
 
         rect_cutout = img[:, W//2 - min(H, W)//2:W//2 + min(H, W)//2]
 
-        loaded_game = np.all(img[40:60, W - 35] == Colors.GRAY_BUTTON, axis=1).any()
+        loaded_game = scv.has_color(img[40:60, W - 35], Colors.GRAY_BUTTON)
         loaded_select = .5 < np.count_nonzero(np.argmax(rect_cutout, axis=2) == 1) / np.multiply(*rect_cutout.shape[:2])
 
         return bool(loaded_select), bool(loaded_game)
@@ -166,7 +166,7 @@ class TwistedMacro(Macro):
         data_output = []
 
         # GET CONTOURS OF WINDOWS
-        gray_mask = np.all(img == Colors.GRAY_1, axis=2).astype(np.uint8) * 255
+        gray_mask = scv.mask_color(img, Colors.GRAY_1)
 
         data_contours = scv.find_contours(gray_mask)
         data_contour = max(data_contours, key=cv2.contourArea)
@@ -199,7 +199,7 @@ class TwistedMacro(Macro):
 
         for contour in sub_data_contours[:2]:
             contour_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [contour], -1, 255, -1)
-            color_mask = cv2.bitwise_and(np.all(img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255, contour_mask)
+            color_mask = cv2.bitwise_and(scv.mask_color(img, Colors.GRAY_0), contour_mask)
 
             color_contours = scv.find_contours(color_mask)
             color_contour = max(color_contours, key=cv2.contourArea)
@@ -216,7 +216,7 @@ class TwistedMacro(Macro):
 
             for row_contour in rows_contours:
                 cont_img = scv.extract_contour(img, row_contour)
-                cont_img[np.where(np.all(cont_img == Colors.GRAY_0, axis=2))] = [0]
+                cont_img[np.where(scv.mask_color(cont_img, Colors.GRAY_0))] = [0]
 
                 color_text_mins = np.min(cont_img, axis=2)
 
@@ -229,7 +229,7 @@ class TwistedMacro(Macro):
                 color_text = scv.crop_image(color_text, top=False, bottom=False)
                 color_text = color_text[:, :-round(next(unit_coef_iterator) * color_text.shape[0])]
 
-                color_text = cv2.resize(color_text, (color_text.shape[1] * 16, color_text.shape[0] * 16), interpolation=cv2.INTER_CUBIC)
+                color_text = scv.upscale(color_text, 16)
                 color_text[np.where(color_text <= 140)] = 0
 
                 scv.split_characters(color_text)
@@ -253,7 +253,7 @@ class TwistedMacro(Macro):
 
         # COMPOSITES
         composites = scv.extract_contour(img, composites_contour)
-        composites[np.where(np.all(composites == Colors.GRAY_0, axis=2))] = [0]
+        composites[np.where(scv.mask_color(composites, Colors.GRAY_0))] = [0]
 
         composites = cv2.cvtColor(composites, cv2.COLOR_BGR2GRAY)
         composites[np.where(composites < 40)] = 0
@@ -261,7 +261,7 @@ class TwistedMacro(Macro):
         for composite in (composites[:, :composites.shape[1]//2], composites[:, composites.shape[1]//2:]):
             composite = scv.crop_image(composite)
 
-            composite = cv2.resize(composite, (composite.shape[1]*8, composite.shape[0]*8), interpolation=cv2.INTER_CUBIC)
+            composite = scv.upscale(composite, 8)
             composite[np.where(composite <= 140)] = 0
 
             characters_contours = scv.find_contours(composite)
@@ -315,7 +315,7 @@ class TwistedMacro(Macro):
             cont_img = scv.extract_contour(img, cont)
 
             for day_type, colors in Colors.DAYS.items():
-                if np.all(cont_img == colors[i], axis=2).any():
+                if scv.has_color(cont_img, colors[i]):
                     data_output.append(day_type)
                     break
 
@@ -323,7 +323,7 @@ class TwistedMacro(Macro):
                 data_output.append(None)
 
         code_row = img[:60]
-        code_row_mask = np.all(code_row == Colors.GRAY_1, axis=2).astype(np.uint8) * 255
+        code_row_mask = scv.mask_color(code_row, Colors.GRAY_1)
 
         code_contour = scv.find_contours(code_row_mask)
         code_contour = min(code_contour, key=lambda e: scv.get_contour_center(e)[0])
@@ -331,7 +331,7 @@ class TwistedMacro(Macro):
         code_mask = cv2.drawContours(np.zeros(code_row.shape[:2], np.uint8), [code_contour], -1, 255, -1)
         code_trans = scv.crop_image(scv.mask_transparent(code_row, code_mask))
 
-        top_mask = np.bitwise_and(np.bitwise_not(data_mask), np.all(img == Colors.GRAY_0, axis=2).astype(np.uint8) * 255)
+        top_mask = np.bitwise_and(np.bitwise_not(data_mask), scv.mask_color(img, Colors.GRAY_0))
         top_contour = max(scv.find_contours(top_mask), key=cv2.contourArea)
         full_data_contour = cv2.convexHull(np.vstack((top_contour, data_contour)))
         full_data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [full_data_contour], -1, 255, -1)

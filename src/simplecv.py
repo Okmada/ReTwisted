@@ -45,6 +45,15 @@ def mask_transparent(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
     return transparent_image
 
+def upscale(image: np.ndarray, coef: int):
+    return cv2.resize(image, (image.shape[1] * coef, image.shape[0] * coef), interpolation=cv2.INTER_CUBIC)
+
+def mask_color(image: np.ndarray, color: np.ndarray) -> np.ndarray:
+    return np.all(image == color, axis=len(image.shape) - 1).astype(np.uint8) * 255
+
+def has_color(image: np.ndarray, color: np.ndarray) -> bool:
+    return bool(mask_color(image, color).any())
+
 def split_characters(img: np.ndarray) -> None:
     cropped = crop_image(img)
 
