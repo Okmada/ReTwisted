@@ -14,10 +14,9 @@ class PhaseError(Exception):
         super().__init__(f"Encountered exception in phase {phase}")
 
 class Macro:
-    def __init__(self, roblox: Roblox, controller: Controller, config: ConfigManager) -> None:
+    def __init__(self, roblox: Roblox, controller: Controller) -> None:
         self.roblox = roblox
         self.controller = controller
-        self.config = config
 
         self._passes = 0
         self._fails = 0

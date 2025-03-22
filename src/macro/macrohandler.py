@@ -12,17 +12,16 @@ from roblox import Roblox
 
 
 class MacroHandler(threading.Thread):
-    def __init__(self, roblox: Roblox, controller: Controller, config: ConfigManager, webhook: Webhook) -> None:
+    def __init__(self, roblox: Roblox, controller: Controller, webhook: Webhook) -> None:
         super().__init__(daemon=True, name=roblox.friendly_name)
 
         self.pause_event = threading.Event()
 
         self.roblox = roblox
         self.controller = controller
-        self.config = config
         self.webhook = webhook
 
-        self._macro = TwistedMacro(roblox, controller, config)
+        self._macro = TwistedMacro(roblox, controller)
 
         self._time = None
         self._data_callbacks = []
@@ -76,13 +75,13 @@ class MacroHandler(threading.Thread):
         self.pause_event.clear()
 
     def unpause(self) -> None:
-        if self.config.get(["roblox", self.roblox.name, "enabled"]):
+        if ConfigManager().get(["roblox", self.roblox.name, "enabled"]):
             self._time = time.time()
 
             self.pause_event.set()
 
     def is_timedout(self) -> bool:
-        time_max = self.config.get(["timeout"])
+        time_max = ConfigManager().get(["timeout"])
 
         if not time_max:
             return False
@@ -96,7 +95,7 @@ class MacroHandler(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data: Data) -> bool:
-        for group in self.config.get(["conditions"]):
+        for group in ConfigManager().get(["conditions"]):
             for condition in group:
                 what, comparison_type, expected_data = condition
 

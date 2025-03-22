@@ -8,11 +8,9 @@ from constants import FONT, NAME
 
 
 class PauseWindow:
-    def __init__(self, master, config: ConfigManager) -> None:
+    def __init__(self, master) -> None:
         self.root = tk.Toplevel(master, background="red")
         self.root.withdraw()
-
-        self.config = config
 
         self.pause_events = []
         self.unpause_events = []
@@ -56,7 +54,7 @@ class PauseWindow:
         for f in self.pause_events: f()
 
     def start_timer(self):
-        timer_mins = self.config.get(["resume timer"])
+        timer_mins = ConfigManager().get(["resume timer"])
 
         if not timer_mins:
             self.timer_text.config(text="")

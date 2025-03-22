@@ -31,19 +31,19 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 logging.info(f"{NAME} v{VERSION} started up")
 
 # START CONFIG AND INITIALIZE WEBHOOK AND DATA LOGGER
-config = ConfigManager()
-webhook = Webhook(config)
-data_logger = DataLogger(config)
+ConfigManager()
+webhook = Webhook()
+data_logger = DataLogger()
 
 # CREATE ROOT AND MAIN GUI
 root = tk.Tk()
 
 gui_main = mainwindow.MainWindow(root)
 
-gui_config = configwindow.ConfigWindow(root, config)
+gui_config = configwindow.ConfigWindow(root)
 gui_main.config_events.append(gui_config.open)
 
-gui_pause = pausewindow.PauseWindow(root, config)
+gui_pause = pausewindow.PauseWindow(root)
 gui_pause.pause_events = gui_main.pause_events
 gui_pause.unpause_events = gui_main.unpause_events
 gui_main.unpause_events.append(gui_pause.close)
@@ -61,13 +61,13 @@ gui_main.unpause_events.append(controller.unpause)
 for roblox_type in RobloxTypes:
     roblox_game = Roblox(roblox_type)
 
-    macro = MacroHandler(roblox_game, controller, config, webhook)
+    macro = MacroHandler(roblox_game, controller, webhook)
     macro.add_pause_callback(lambda *_: gui_pause.open())
     macro.add_data_callback(data_logger.append)
 
     gui_main.pause_events.append(macro.pause)
     gui_main.unpause_events.append(macro.unpause)
 
-    robloxframe.RobloxFrame(gui_main.games_scrollframe.interior, macro, config)
+    robloxframe.RobloxFrame(gui_main.games_scrollframe.interior, macro)
 
 root.mainloop()

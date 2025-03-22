@@ -2,16 +2,14 @@ import datetime
 import logging
 
 from data import Data
+from config import ConfigManager
 
 
 class DataLogger:
     FILENAME = "data.csv"
 
-    def __init__(self, config):
-        self.config = config
-
     def append(self, data_raw: Data):
-        if not self.config.get(["save data"]):
+        if not ConfigManager().get(["save data"]):
             return
 
         labels_template = ["DATETIME"] + list(data_raw.FORMAT.keys())

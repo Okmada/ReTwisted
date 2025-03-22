@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 import simplecv as scv
+from config import ConfigManager
 from data import Data
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
@@ -68,8 +69,8 @@ class TwistedMacro(Macro):
 
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
-        server = self.config.get(["roblox", self.roblox.name, "server"])
-        bloxstrap = self.config.get(["bloxstrap"])
+        server = ConfigManager().get(["roblox", self.roblox.name, "server"])
+        bloxstrap = ConfigManager().get(["bloxstrap"])
         if server:
             self.roblox.join_server(server, bloxstrap=bloxstrap)
         else:

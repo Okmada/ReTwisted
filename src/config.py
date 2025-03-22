@@ -1,10 +1,10 @@
 import json
 from typing import Any, List, Type
 
-from roblox import RobloxTypes
+from utils import Singleton
 
 
-class ConfigManager:
+class ConfigManager(metaclass=Singleton):
     CONFIG_FILE = ".config.json"
 
     def __init__(self):
@@ -15,11 +15,11 @@ class ConfigManager:
 
         self.__config = ConfigGroup("", [
             ConfigGroup("roblox", [
-                ConfigGroup(roblox_type.name, [
+                ConfigGroup(roblox_type, [
                     ConfigValue("enabled", bool, False),
                     ConfigValue("server", str, ""),
                 ])
-                for roblox_type in RobloxTypes
+                for roblox_type in ("WINDOWSCLIENT", "ApplicationFrameWindow")
             ]),
             ConfigGroup("webhook", [
                 ConfigValue("url", str, ""),

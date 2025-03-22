@@ -15,10 +15,10 @@ class ConfigWindow:
         def _create_gui(self, master) -> None:
             raise NotImplementedError
 
-        def import_config(self, config: ConfigManager, path=[]) -> None:
+        def import_config(self, path=[]) -> None:
             raise NotImplementedError
 
-        def export_config(self, config: ConfigManager, path=[]) -> None:
+        def export_config(self, path=[]) -> None:
             raise NotImplementedError
 
     class Group(ConfigTemplate):
@@ -35,13 +35,13 @@ class ConfigWindow:
             for child in self.childs:
                 child._create_gui(submaster)
 
-        def import_config(self, config, path=[]):
+        def import_config(self, path=[]):
             for child in self.childs:
-                child.import_config(config, path + [self.name])
+                child.import_config(path + [self.name])
 
-        def export_config(self, config, path=[]):
+        def export_config(self, path=[]):
             for child in self.childs:
-                child.export_config(config, path + [self.name])
+                child.export_config(path + [self.name])
 
     class EntryConfig(ConfigTemplate):
         def __init__(self, name, dtype, description):
@@ -78,18 +78,18 @@ class ConfigWindow:
             tk.Entry(frame, textvariable=self.inpt, width=50) \
                 .pack(side=tk.LEFT, padx=(3, 0))
 
-        def import_config(self, config, path=[]):
-            config_value = config.get(path + [self.name])
+        def import_config(self, path=[]):
+            config_value = ConfigManager().get(path + [self.name])
 
             self.inpt.set(config_value)
 
-        def export_config(self, config, path=[]):
+        def export_config(self, path=[]):
             try:
                 config_value = self.dtype(self.inpt.get())
             except:
                 config_value = None
 
-            config.set(path + [self.name], config_value)
+            ConfigManager().set(path + [self.name], config_value)
 
     class BoolConfig(ConfigTemplate):
         options = ["Disabled", "Enabled"] # ["False", "True"]
@@ -113,15 +113,15 @@ class ConfigWindow:
             tk.OptionMenu(frame, self.inpt, *self.options) \
                 .pack(side=tk.LEFT, padx=(3, 0))
 
-        def import_config(self, config, path=[]):
-            config_value = int(config.get(path + [self.name]))
+        def import_config(self, path=[]):
+            config_value = int(ConfigManager().get(path + [self.name]))
 
             self.inpt.set(self.options[config_value])
 
-        def export_config(self, config, path=[]):
+        def export_config(self, path=[]):
             config_value = self.options.index(self.inpt.get())
 
-            config.set(path + [self.name], bool(config_value))
+            ConfigManager().set(path + [self.name], bool(config_value))
 
     class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
@@ -274,24 +274,22 @@ class ConfigWindow:
                       self.ConditionGroup(self.master, self._sublist)) \
                 .pack(fill=tk.X, side=tk.BOTTOM)
 
-        def import_config(self, config, path=[]):
+        def import_config(self, path=[]):
             while self._sublist:
                 self._sublist.pop().frame.destroy()
 
-            for groups in config.get(path + [self.name]):
+            for groups in ConfigManager().get(path + [self.name]):
                 self.ConditionGroup(self.master, self._sublist) \
                     .import_config(groups)
 
-        def export_config(self, config, path=[]):
+        def export_config(self, path=[]):
             config_value = [group.export_config() for group in self._sublist]
 
-            config.set(path + [self.name], config_value)
+            ConfigManager().set(path + [self.name], config_value)
 
-    def __init__(self, master, config: ConfigManager) -> None:
+    def __init__(self, master) -> None:
         self.root= tk.Toplevel(master)
         self.root.withdraw()
-
-        self.config = config
 
         self.left_config = [
             self.Group("webhook", [
@@ -346,7 +344,7 @@ class ConfigWindow:
 
     def open(self) -> None:
         for setting in self.left_config + self.right_config:
-            setting.import_config(self.config)
+            setting.import_config()
 
         self.root.deiconify()
 
@@ -357,4 +355,4 @@ class ConfigWindow:
         self.close()
 
         for setting in self.left_config + self.right_config:
-            setting.export_config(self.config)
+            setting.export_config()

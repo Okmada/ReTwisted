@@ -48,7 +48,7 @@ EmptyClipboard.restype = ctypes.wintypes.BOOL
 
 
 class RobloxFrame:
-    def __new__(self, master, macro: MacroHandler, config: ConfigManager):
+    def __new__(self, master, macro: MacroHandler):
         config_path = ["roblox", macro.roblox.name]
 
         frame = tk.Frame(master, height=250, background="#aaa")
@@ -92,9 +92,9 @@ class RobloxFrame:
         enabled_frame = tk.Frame(info_frame_bottom)
         enabled_frame.pack(fill=tk.X, side=tk.TOP)
 
-        enabled_var = tk.IntVar(value=config.get(config_path + ["enabled"]))
+        enabled_var = tk.IntVar(value=ConfigManager().get(config_path + ["enabled"]))
 
-        enabled_var.trace_add("write", lambda *e: config.set(config_path + ["enabled"], bool(enabled_var.get())))
+        enabled_var.trace_add("write", lambda *e: ConfigManager().set(config_path + ["enabled"], bool(enabled_var.get())))
 
         tk.Label(enabled_frame, text="Enabled") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
@@ -104,7 +104,7 @@ class RobloxFrame:
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)
 
-        server = config.get(config_path + ["server"])
+        server = ConfigManager().get(config_path + ["server"])
         server_url_var = tk.StringVar(value=f"code={server}" if server else "")
 
         tk.Label(server_frame, text="Server url:") \
@@ -119,7 +119,7 @@ class RobloxFrame:
             server_url_entry.configure(highlightbackground=color, highlightcolor=color)
 
             server = str(code.group(1)) if code else ""
-            config.set(config_path + ["server"], server)
+            ConfigManager().set(config_path + ["server"], server)
 
         server_url_var.trace_add("write", write_verify_url)
         write_verify_url()

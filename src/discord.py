@@ -12,19 +12,16 @@ from roblox import RobloxTypes
 
 
 class Webhook:
-    def __init__(self, config: ConfigManager) -> None:
-        self.config = config
-
     def send(self, roblox_type: RobloxTypes, data: Data, data_image, code_image) -> requests.Response | None:
-        url = self.config.get(["webhook", "url"])
+        url = ConfigManager().get(["webhook", "url"])
         if not url:
             return
 
-        server = self.config.get(["roblox", roblox_type, "server"])
+        server = ConfigManager().get(["roblox", roblox_type, "server"])
 
-        share_link = self.config.get(["webhook", "share link"])
-        role_id = self.config.get(["webhook", "role id"])
-        user_id = self.config.get(["webhook", "user id"])
+        share_link = ConfigManager().get(["webhook", "share link"])
+        role_id = ConfigManager().get(["webhook", "role id"])
+        user_id = ConfigManager().get(["webhook", "user id"])
 
         payload = {
             "username": NAME,
