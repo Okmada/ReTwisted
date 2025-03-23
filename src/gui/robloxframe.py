@@ -11,6 +11,7 @@ from config import ConfigManager
 from constants import FONT
 from data import Data
 from macro.macrohandler import MacroHandler
+from macro.macros import DefaultMacro, Macros
 
 CF_DIB = 8
 NO_ERROR = 0
@@ -89,17 +90,40 @@ class RobloxFrame:
         info_frame_bottom = tk.Frame(info_frame)
         info_frame_bottom.pack(padx=5, pady=5, fill=tk.X, side=tk.BOTTOM)
 
+
         enabled_frame = tk.Frame(info_frame_bottom)
         enabled_frame.pack(fill=tk.X, side=tk.TOP)
 
         enabled_var = tk.IntVar(value=ConfigManager().get(config_path + ["enabled"]))
-
         enabled_var.trace_add("write", lambda *e: ConfigManager().set(config_path + ["enabled"], bool(enabled_var.get())))
 
         tk.Label(enabled_frame, text="Enabled") \
             .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N)
         tk.Checkbutton(enabled_frame, variable=enabled_var) \
             .pack(side=tk.RIGHT, anchor=tk.W, expand=True)
+
+
+        macro_frame = tk.Frame(info_frame_bottom)
+        macro_frame.pack(fill=tk.X, side=tk.TOP)
+
+        macro_var = tk.StringVar(value=ConfigManager().get(config_path + ["macro"]))
+
+        tk.Label(macro_frame, text="Macro:") \
+            .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
+        server_url_entry = tk.OptionMenu(macro_frame, macro_var, *Macros.keys())
+        server_url_entry.pack(fill=tk.BOTH, side=tk.LEFT, anchor=tk.N)
+
+        def write_verify_macro(*e):
+            selected_macro = macro_var.get()
+            if selected_macro not in Macros:
+                selected_macro = DefaultMacro
+            macro_var.set(selected_macro)
+            macro.change_macro(selected_macro)
+            ConfigManager().set(config_path + ["macro"], selected_macro)
+
+        macro_var.trace_add("write", write_verify_macro)
+        write_verify_macro()
+
 
         server_frame = tk.Frame(info_frame_bottom)
         server_frame.pack(fill=tk.X, side=tk.TOP)

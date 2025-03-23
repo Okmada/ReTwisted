@@ -4,7 +4,7 @@ from typing import List
 from config import ConfigManager
 from constants import FONT, NAME
 from gui.scrollframe import ScrollFrame
-from macro.twistedmacro import TwistedMacro
+from macro.macros import DefaultMacro, Macros
 
 
 class ConfigWindow:
@@ -126,10 +126,9 @@ class ConfigWindow:
     class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
             class Condition:
-                data_options = list(TwistedMacro.Data.FORMAT.keys())
                 comparison_options = ["==", "<=", ">="]
 
-                def __init__(self, master, superlist: List) -> None:
+                def __init__(self, master, superlist: List, macro: str) -> None:
                     self.master = master
 
                     self.frame = tk.Frame(master, highlightbackground="black", highlightthickness=1)
@@ -137,6 +136,9 @@ class ConfigWindow:
 
                     self._superlist = superlist
                     self._superlist.append(self)
+
+                    self.data_format = Macros[macro].Data.FORMAT
+                    self.data_options = list(self.data_format.keys())
 
                     self._create_widgets()
 
@@ -169,7 +171,7 @@ class ConfigWindow:
 
                 def update_first(self, *_) -> None:
                     selected = self.first_var.get()
-                    data_format = TwistedMacro.Data.FORMAT[selected]
+                    data_format = self.data_format[selected]
 
                     self.third_var.set("")
 
@@ -181,7 +183,7 @@ class ConfigWindow:
 
                 def update_third(self, *_) -> None:
                     selected = self.first_var.get()
-                    data_format = TwistedMacro.Data.FORMAT[selected]
+                    data_format = self.data_format[selected]
                     input_value = self.third_var.get()
 
                     if data_format == str:
@@ -214,7 +216,7 @@ class ConfigWindow:
                 def export_config(self) -> List[str]:
                     return [self.first_var.get(), self.second_var.get(), self.third_var.get()]
 
-            def __init__(self, master, superlist: List) -> None:
+            def __init__(self, master, superlist: List, macro: str) -> None:
                 self.master = master
 
                 self.frame = tk.Frame(master, highlightbackground="black", highlightthickness=2)
@@ -224,6 +226,8 @@ class ConfigWindow:
 
                 self._superlist = superlist
                 self._superlist.append(self)
+
+                self.macro = macro
 
                 self._create_widgets()
 
@@ -238,7 +242,7 @@ class ConfigWindow:
                 self.delete_group_button.pack(fill=tk.X, side=tk.RIGHT)
 
             def add_condition(self) -> None:
-                self.Condition(self.frame, self._sublist)
+                self.Condition(self.frame, self._sublist, self.macro)
 
             def delete_group(self) -> None:
                 self.frame.destroy()
@@ -246,7 +250,7 @@ class ConfigWindow:
 
             def import_config(self, config: List[List[str]]) -> None:
                 for subconfig in config:
-                    self.Condition(self.frame, self._sublist) \
+                    self.Condition(self.frame, self._sublist, self.macro) \
                         .import_config(subconfig)
 
             def export_config(self) -> List[List[str]]:
@@ -258,6 +262,11 @@ class ConfigWindow:
             self.name = name.lower()
 
             self.master = None
+
+            self.macro = DefaultMacro
+
+            self.config = {}
+
             self._sublist = []
 
         def _create_gui(self, master):
@@ -271,21 +280,45 @@ class ConfigWindow:
             description.bind('<Configure>', lambda *_: description.config(wraplength=description.winfo_width()))
 
             tk.Button(self.master, text="Add group", command=lambda:
-                      self.ConditionGroup(self.master, self._sublist)) \
+                      self.ConditionGroup(self.master, self._sublist, self.macro)) \
                 .pack(fill=tk.X, side=tk.BOTTOM)
+            
+            self.macro_selector = tk.StringVar(value=self.macro)
+            self.macro_selector.trace_add("write", self.change_macro)
 
-        def import_config(self, path=[]):
+            tk.OptionMenu(self.master, self.macro_selector, *Macros.keys()) \
+                .pack(fill=tk.X, side=tk.TOP)
+            
+        def clear(self):
             while self._sublist:
                 self._sublist.pop().frame.destroy()
 
-            for groups in ConfigManager().get(path + [self.name]):
-                self.ConditionGroup(self.master, self._sublist) \
-                    .import_config(groups)
+        def save(self):
+            self.config[self.macro] = [group.export_config() for group in self._sublist]
+
+        def load(self):
+            self.clear()
+            if self.macro in self.config:
+                for groups in self.config[self.macro]:
+                    self.ConditionGroup(self.master, self._sublist, self.macro) \
+                        .import_config(groups)
+
+        def change_macro(self, *_):
+            self.save()
+            self.macro = self.macro_selector.get()
+            self.load()
+
+        def import_config(self, path=[]):
+            for macro in Macros.keys():
+                self.config[macro] = ConfigManager().get(path + [self.name] + [macro])
+
+            self.load()
 
         def export_config(self, path=[]):
-            config_value = [group.export_config() for group in self._sublist]
+            self.save()
 
-            ConfigManager().set(path + [self.name], config_value)
+            for macro in Macros.keys():
+                ConfigManager().set(path + [self.name] + [macro], self.config[macro])
 
     def __init__(self, master) -> None:
         self.root= tk.Toplevel(master)

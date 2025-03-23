@@ -17,6 +17,7 @@ class ConfigManager(metaclass=Singleton):
             ConfigGroup("roblox", [
                 ConfigGroup(roblox_type, [
                     ConfigValue("enabled", bool, False),
+                    ConfigValue("macro", str, ""),
                     ConfigValue("server", str, ""),
                 ])
                 for roblox_type in ("WINDOWSCLIENT", "ApplicationFrameWindow")
@@ -31,7 +32,9 @@ class ConfigManager(metaclass=Singleton):
             ConfigValue("resume timer", int, 15),
             ConfigValue("save data", bool, True),
             ConfigValue("roblox player launcher override", str, ""),
-            ConfigValue("conditions", list, []),
+            ConfigGroup("conditions", [
+                ConfigValue("TwistedMacro_latest", list, []),
+            ]),
         ])
 
         self.__config.set(raw)

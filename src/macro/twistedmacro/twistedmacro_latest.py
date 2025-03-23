@@ -29,7 +29,7 @@ class Colors:
     }
 
 
-class TwistedMacro(Macro):
+class TwistedMacro_latest(Macro):
     class Data(Macro.Data):
         FORMAT = {
             "TEMPERATURE": int,

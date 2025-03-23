@@ -7,7 +7,7 @@ from config import ConfigManager
 from controller import Controller
 from data import Data
 from discord import Webhook
-from macro.twistedmacro import TwistedMacro
+from macro.macros import Macros
 from roblox import Roblox
 
 
@@ -21,7 +21,8 @@ class MacroHandler(threading.Thread):
         self.controller = controller
         self.webhook = webhook
 
-        self._macro = TwistedMacro(roblox, controller)
+        self._macro_name = None
+        self._macro = None
 
         self._time = None
         self._data_callbacks = []
@@ -29,10 +30,20 @@ class MacroHandler(threading.Thread):
 
         self.start()
 
+    def change_macro(self, macro: str):
+        if macro in Macros:
+            self._macro_name = macro
+            self._macro = Macros[macro](self.roblox, self.controller)
+
     def run(self):
         while True:
             try:
                 self.pause_event.wait()
+
+                if self._macro_name is None or self._macro is None:
+                    logging.error("No macro selected")
+                    time.sleep(5)
+                    continue
 
                 if self.is_timedout():
                     raise Exception("Time for reroll exceeded limit (timeout)")
@@ -95,7 +106,7 @@ class MacroHandler(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data: Data) -> bool:
-        for group in ConfigManager().get(["conditions"]):
+        for group in ConfigManager().get(["conditions", self._macro_name]):
             for condition in group:
                 what, comparison_type, expected_data = condition
 
