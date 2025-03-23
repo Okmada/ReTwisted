@@ -30,7 +30,7 @@ class ConfigManager(metaclass=Singleton):
             ConfigValue("timeout", int, 75),
             ConfigValue("resume timer", int, 15),
             ConfigValue("save data", bool, True),
-            ConfigValue("bloxstrap", bool, False),
+            ConfigValue("roblox player launcher override", str, ""),
             ConfigValue("conditions", list, []),
         ])
 

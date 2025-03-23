@@ -8,6 +8,8 @@ import time
 import cv2
 import numpy as np
 
+from config import ConfigManager
+
 user32 = ctypes.windll.user32
 gdi32 = ctypes.windll.gdi32
 
@@ -60,7 +62,7 @@ class Roblox:
         self._roblox_type = roblox_type
         self._hwnd: int = 0
 
-    def start_roblox(self, arg, bloxstrap=False):
+    def start_roblox(self, arg):
         if not self.is_installed():
             raise Exception("Roblox is not installed")
 
@@ -72,13 +74,12 @@ class Roblox:
 
                 path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
 
-                if bloxstrap:
-                    bloxstrap_path = os.path.join(programs_dir, "Bloxstrap.lnk")
-
-                    if os.path.isfile(bloxstrap_path):
-                        path = bloxstrap_path
+                override_path = ConfigManager().get(["roblox player launcher override"])
+                if override_path:
+                    if os.path.isfile(override_path):
+                        path = override_path
                     else:
-                        logging.warning("Could not find Bloxstrap, using Roblox Player instead.")
+                        logging.warning("Invalid Roblox Player override, using default Roblox Player instead.")
 
                 os.popen(f'powershell.exe -Command Start-Process -FilePath \\"{path}\\" -ArgumentList \\"{arg}\\"')
             case RobloxTypes.ApplicationFrameWindow:
@@ -88,15 +89,15 @@ class Roblox:
 
         self.find_roblox()
 
-    def join_place(self, place_id: str, linkCode="", bloxstrap=False):
+    def join_place(self, place_id: str, linkCode=""):
         assert place_id.isnumeric()
         arg = f"roblox://placeId={place_id}" + (f"&linkCode={linkCode}" if linkCode else "")
-        self.start_roblox(arg, bloxstrap=bloxstrap)
+        self.start_roblox(arg)
 
-    def join_server(self, code: str, bloxstrap=False):
+    def join_server(self, code: str):
         assert len(code) == 32
         arg = f"roblox://navigation/share_links?code={code}&type=Server"
-        self.start_roblox(arg, bloxstrap=bloxstrap)
+        self.start_roblox(arg)
 
     def find_roblox(self, retries=20):
         for _ in range(retries):
