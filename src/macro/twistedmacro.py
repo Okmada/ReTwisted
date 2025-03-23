@@ -6,7 +6,6 @@ import numpy as np
 
 import simplecv as scv
 from config import ConfigManager
-from data import Data
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
 
@@ -29,32 +28,33 @@ class Colors:
         "ENH": ((83, 146, 249), (70, 116, 193), (60, 88, 139)),
     }
 
-class TwistedData(Data):
-    FORMAT = {
-        "TEMPERATURE": int,
-        "CAPE": int,
-        "0-3KM LAPSE RATES": float,
-        "PWAT": float,
-        "SURFACE RH": int,
-
-        "DEWPOINT": int,
-        "3CAPE": int,
-        "3-6KM LAPSE RATES": float,
-        "SRH": int,
-        "700-500mb RH": int,
-
-        "STP": int,
-        "VTP": int,
-
-        # "ANGLE": int,
-        # "STORM MOTION": int,
-
-        "DAY 1": str,
-        "DAY 2": str,
-        "DAY 3": str,
-    }
 
 class TwistedMacro(Macro):
+    class Data(Macro.Data):
+        FORMAT = {
+            "TEMPERATURE": int,
+            "CAPE": int,
+            "0-3KM LAPSE RATES": float,
+            "PWAT": float,
+            "SURFACE RH": int,
+
+            "DEWPOINT": int,
+            "3CAPE": int,
+            "3-6KM LAPSE RATES": float,
+            "SRH": int,
+            "700-500mb RH": int,
+
+            "STP": int,
+            "VTP": int,
+
+            # "ANGLE": int,
+            # "STORM MOTION": int,
+
+            "DAY 1": str,
+            "DAY 2": str,
+            "DAY 3": str,
+        }
+
     @property
     def steps(self):
         return[
@@ -337,4 +337,4 @@ class TwistedMacro(Macro):
 
         data_trans = scv.crop_image(scv.mask_transparent(img, full_data_mask))
 
-        return TwistedData(*data_output), data_trans, code_trans
+        return self.Data(*data_output), data_trans, code_trans

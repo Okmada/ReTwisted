@@ -4,7 +4,7 @@ from typing import List
 from config import ConfigManager
 from constants import FONT, NAME
 from gui.scrollframe import ScrollFrame
-from macro.twistedmacro import TwistedData
+from macro.twistedmacro import TwistedMacro
 
 
 class ConfigWindow:
@@ -126,7 +126,7 @@ class ConfigWindow:
     class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
             class Condition:
-                data_options = list(TwistedData.FORMAT.keys())
+                data_options = list(TwistedMacro.Data.FORMAT.keys())
                 comparison_options = ["==", "<=", ">="]
 
                 def __init__(self, master, superlist: List) -> None:
@@ -169,7 +169,7 @@ class ConfigWindow:
 
                 def update_first(self, *_) -> None:
                     selected = self.first_var.get()
-                    data_format = TwistedData.FORMAT[selected]
+                    data_format = TwistedMacro.Data.FORMAT[selected]
 
                     self.third_var.set("")
 
@@ -181,7 +181,7 @@ class ConfigWindow:
 
                 def update_third(self, *_) -> None:
                     selected = self.first_var.get()
-                    data_format = TwistedData.FORMAT[selected]
+                    data_format = TwistedMacro.Data.FORMAT[selected]
                     input_value = self.third_var.get()
 
                     if data_format == str:
