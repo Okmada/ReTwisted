@@ -66,7 +66,7 @@ class Roblox:
 
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
-                os.popen("powershell.exe -Command \"Get-Process -Name RobloxPlayerBeta -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}\"")
+                os.popen('powershell.exe -Command "Get-Process -Name RobloxPlayerBeta -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}"')
 
                 programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
 
@@ -80,9 +80,9 @@ class Roblox:
                     else:
                         logging.warning("Could not find Bloxstrap, using Roblox Player instead.")
 
-                os.startfile(path, arguments=arg)
+                os.popen(f'powershell.exe -Command Start-Process -FilePath \\"{path}\\" -ArgumentList \\"{arg}\\"')
             case RobloxTypes.ApplicationFrameWindow:
-                os.startfile(arg)
+                os.popen(f'powershell.exe -Command Start-Process \\"{arg}\\"')
             case _:
                 return None
 
