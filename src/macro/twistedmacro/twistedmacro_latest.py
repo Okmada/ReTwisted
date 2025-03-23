@@ -70,10 +70,7 @@ class TwistedMacro_latest(Macro):
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
         server = ConfigManager().get(["roblox", self.roblox.name, "server"])
-        if server:
-            self.roblox.join_server(server)
-        else:
-            self.roblox.join_place(PLACE_ID)
+        self.roblox.join_place(PLACE_ID, server)
 
         return True
 
