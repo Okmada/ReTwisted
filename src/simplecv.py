@@ -54,6 +54,10 @@ def mask_color(image: np.ndarray, color: np.ndarray) -> np.ndarray:
 def has_color(image: np.ndarray, color: np.ndarray) -> bool:
     return bool(mask_color(image, color).any())
 
+def spread_hist(image: np.ndarray) -> np.ndarray:
+    assert len(image.shape) == 2
+    return ((image - np.min(image)) * (255 / (np.max(image) - np.min(image)))).astype(np.uint8)     
+
 def split_characters(img: np.ndarray) -> None:
     cropped = crop_image(img)
 

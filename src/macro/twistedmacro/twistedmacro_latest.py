@@ -219,7 +219,8 @@ class TwistedMacro_latest(Macro):
                 cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
 
                 color_text = cont_img - color_text_mins
-                color_text = (color_text * (255 / np.max(color_text))).astype(np.uint8)
+
+                color_text = scv.spread_hist(color_text)
                 color_text[np.where(color_text <= 8)] = 0
 
                 color_text = scv.crop_image(color_text, top=False, bottom=False)
