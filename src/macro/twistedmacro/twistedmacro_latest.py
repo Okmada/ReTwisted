@@ -159,7 +159,8 @@ class TwistedMacro_latest(Macro):
     @safe_execution
     @fail_n_times(n=5, delay=.5, steps_return=-1)
     def get_data(self, img: np.ndarray) -> False | Type[Data]:
-        data_output = []
+        data_output = {}
+        data_format_iterator = iter(self.Data.FORMAT.items())
 
         # GET CONTOURS OF WINDOWS
         gray_mask = scv.mask_color(img, Colors.GRAY_1)
@@ -234,19 +235,21 @@ class TwistedMacro_latest(Macro):
                 characters_contours = scv.find_contours(color_text)
                 characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
 
+                data_name, data_type = next(data_format_iterator)
+
                 number = ""
                 for character_contour in characters_contours:
                     character_img = scv.extract_contour(color_text, character_contour)
 
                     if character_img.shape[0] / color_text.shape[0] < 0.5:
-                        if "." not in number:
+                        if "." not in number and data_type == float:
                             number += "."
                         continue
 
                     result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
                     number += str(result)
 
-                data_output.append(number[::-1])
+                data_output[data_name] = number[::-1]
 
         # COMPOSITES
         composites = scv.extract_contour(img, composites_contour)
@@ -264,6 +267,8 @@ class TwistedMacro_latest(Macro):
             characters_contours = scv.find_contours(composite)
             characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
 
+            data_name, data_type = next(data_format_iterator)
+
             number = ""
             for character_contour in characters_contours:
                 character_img = scv.extract_contour(composite, character_contour)
@@ -274,7 +279,8 @@ class TwistedMacro_latest(Macro):
                 result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
                 number += str(result)
 
-            data_output.append(number[::-1])
+            data_output[data_name] = number[::-1]
+
 
         # ANGLE STORM MOTION
         # hodo_img = scv.extract_contour(img, sub_data_contours[2])
@@ -311,13 +317,15 @@ class TwistedMacro_latest(Macro):
         for i, cont in enumerate(days_contours):
             cont_img = scv.extract_contour(img, cont)
 
+            data_name, data_type = next(data_format_iterator)
+
             for day_type, colors in Colors.DAYS.items():
                 if scv.has_color(cont_img, colors[i]):
-                    data_output.append(day_type)
+                    data_output[data_name] = day_type
                     break
 
             else:
-                data_output.append(None)
+                data_output[data_name] = None
 
         code_row = img[:60]
         code_row_mask = scv.mask_color(code_row, Colors.GRAY_1)
@@ -335,4 +343,4 @@ class TwistedMacro_latest(Macro):
 
         data_trans = scv.crop_image(scv.mask_transparent(img, full_data_mask))
 
-        return self.Data(*data_output), data_trans, code_trans
+        return self.Data(**data_output), data_trans, code_trans
