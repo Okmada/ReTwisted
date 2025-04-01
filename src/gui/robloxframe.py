@@ -146,6 +146,8 @@ class RobloxFrame:
                 popup.title("Wrong link detected!")
                 tk.Label(popup, justify=tk.LEFT, text="An incorrect link has been detected. Follow these steps to obtain the correct link:\n\n1) Open the current link in a browser where you are logged into Roblox.\n2) Wait a few seconds for Roblox to redirect and launch.\n3) Copy the link from the address bar and paste it in.").pack(padx=10, pady=10)
                 server_url_var.set("")
+                popup.grab_set()
+                popup.focus()
 
             color = "#54de01" if linkCode else "red"
             server_url_entry.configure(highlightbackground=color, highlightcolor=color)
