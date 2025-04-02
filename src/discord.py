@@ -12,10 +12,16 @@ from roblox import RobloxTypes
 
 
 class Webhook:
-    def send(self, roblox_type: RobloxTypes, data: Data, data_image, code_image) -> requests.Response | None:
+    def send(self, roblox_type: RobloxTypes, data: Data, webhook_images: dict) -> requests.Response | None:
         url = ConfigManager().get(["webhook", "url"])
         if not url:
             return
+
+        hasThumbnail = "thumbnail" in webhook_images
+        hasImage = "image" in webhook_images
+
+        thumbnail = webhook_images.get("thumbnail")
+        image = webhook_images.get("image")
 
         server = ConfigManager().get(["roblox", roblox_type, "server"])
 
@@ -46,8 +52,8 @@ class Webhook:
                     }] if server and share_link else [])
                 ],
 
-                "image": {"url": "attachment://data.png"},
-                "thumbnail": {"url": "attachment://code.png"},
+                **({"thumbnail": {"url": "attachment://thumbnail.png"}} if hasThumbnail else {}),
+                **({"image": {"url": "attachment://image.png"}} if hasImage else {}),
                 "footer": {
                     "text": f"{NAME} • by Ad_amko",
                     "icon_url": "attachment://icon.png"
@@ -56,8 +62,8 @@ class Webhook:
         }
 
         files = {
-            "_code.png": ("code.png", cv2.imencode(".png", code_image)[1].tostring()),
-            "_data.png": ("data.png", cv2.imencode(".png", data_image)[1].tostring()),
+            **({"_thumbnail.png": ("thumbnail.png", cv2.imencode(".png", thumbnail)[1].tostring())} if hasThumbnail else {}),
+            **({"_image.png": ("image.png", cv2.imencode(".png", image)[1].tostring())} if hasImage else {}),
             "_icon.png": ("icon.png", open(utils.resource_path("assets/icon.png"), "rb").read()),
             'payload_json': (None, json.dumps(payload)),
         }

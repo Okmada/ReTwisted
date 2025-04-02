@@ -343,4 +343,4 @@ class TwistedMacro_latest(Macro):
 
         data_trans = scv.crop_image(scv.mask_transparent(img, full_data_mask))
 
-        return self.Data(**data_output), data_trans, code_trans
+        return self.Data(**data_output), {"image": data_trans, "thumbnail": code_trans}
