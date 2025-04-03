@@ -9,7 +9,7 @@ from config import ConfigManager
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
 
-PLACE_ID = "6161235818"
+PLACE_ID = "14170731342"
 
 class Colors:
     GREEN = (127, 255, 170)
@@ -59,8 +59,6 @@ class TwistedMacro_latest(Macro):
     def steps(self):
         return[
             self.start_roblox,
-            self.await_menu,
-            self.navigate_menu,
             self.await_game,
             self.navigate_game,
             self.open_data_menu,
@@ -71,29 +69,6 @@ class TwistedMacro_latest(Macro):
         # START ROBLOX AND WAIT FOR HWND
         server = ConfigManager().get(["roblox", self.roblox.name, "server"])
         self.roblox.join_place(PLACE_ID, server)
-
-        return True
-
-    @ensure_n_times(n=3, delay=.3)
-    def await_menu(self, img: np.ndarray) -> bool:
-        # WAIT FOR TWISTED TO LOAD INTO MENU
-        cutout = img[:, :int(0.22 * img.shape[1])]
-
-        return scv.has_color(cutout, Colors.GREEN)
-
-    def navigate_menu(self, img: np.ndarray) -> bool:
-        # NAVIGATE MENU
-        cutout = img[:, :int(0.22 * img.shape[1])]
-
-        green_mask = scv.mask_color(cutout, Colors.GREEN)
-
-        green_contours = scv.find_contours(green_mask)
-
-        green_contour = max(green_contours, key=cv2.contourArea)
-
-        play_button = self.roblox.offset_point(scv.get_contour_center(green_contour))
-
-        self.controller.async_click(self.roblox.hwnd, play_button)
 
         return True
 
