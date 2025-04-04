@@ -108,19 +108,13 @@ class Roblox:
         else:
             raise Exception("Could not find roblox")
 
-    def close_roblox(self, retries=20):
-        if not self._hwnd:
-            return
-
-        user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
-
-        for _ in range(retries):
-            if not user32.FindWindowW(self._roblox_type.name, "Roblox"):
-                self._hwnd = 0
-                break
-            time.sleep(1)
-        else:
-            logging.error("Could not close Roblox.")
+    def close_roblox(self):
+        match self._roblox_type:
+            case RobloxTypes.WINDOWSCLIENT:
+                os.popen('powershell.exe -Command "Get-Process -Name RobloxPlayerBeta -ErrorAction Ignore | ForEach-Object {$_.Kill()}"')
+            case RobloxTypes.ApplicationFrameWindow:
+                if self._hwnd: user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
+        self._hwnd = 0
 
     def is_installed(self):
         match self._roblox_type:
