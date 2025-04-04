@@ -70,6 +70,7 @@ class TwistedMacro_latest(Macro):
         server = ConfigManager().get(["roblox", self.roblox.name, "server"])
         self.roblox.join_place(PLACE_ID, server)
 
+        time.sleep(5)
         return True
 
     def get_game_status(self, img: np.ndarray) -> Tuple[bool]:
