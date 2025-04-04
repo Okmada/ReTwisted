@@ -63,9 +63,6 @@ class Roblox:
         self._hwnd: int = 0
 
     def start_roblox(self, arg):
-        if not self.is_installed():
-            raise Exception("Roblox is not installed")
-
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
                 os.popen('powershell.exe -Command "Get-Process -Name RobloxPlayerBeta -ErrorAction Ignore | Sort-Object -Property CPU -Descending | Select-Object -Skip 1 | ForEach-Object {$_.Kill()}"')
@@ -81,8 +78,14 @@ class Roblox:
                     else:
                         logging.warning("Invalid Roblox Player override, using default Roblox Player instead.")
 
+                if not os.path.isfile(path):
+                    raise Exception("Roblox is not installed")
+
                 os.popen(f'powershell.exe -Command Start-Process -FilePath \\"{path}\\" -ArgumentList \\"{arg}\\"')
             case RobloxTypes.ApplicationFrameWindow:
+                if not bool(os.popen("powershell.exe Get-AppxPackage -Name ROBLOXCORPORATION.ROBLOX").read().strip()):
+                    raise Exception("Roblox is not installed")
+
                 os.popen(f'powershell.exe -Command Start-Process \\"{arg}\\"')
             case _:
                 return None
@@ -115,17 +118,6 @@ class Roblox:
             case RobloxTypes.ApplicationFrameWindow:
                 if self._hwnd: user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
         self._hwnd = 0
-
-    def is_installed(self):
-        match self._roblox_type:
-            case RobloxTypes.WINDOWSCLIENT:
-                programs_dir = os.path.expandvars("%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs")
-                path = os.path.join(programs_dir, "Roblox\\Roblox Player.lnk")
-                return os.path.isfile(path)
-            case RobloxTypes.ApplicationFrameWindow:
-                return bool(os.popen("powershell.exe Get-AppxPackage -Name ROBLOXCORPORATION.ROBLOX").read().strip())
-            case _:
-                return False
 
     def is_crashed(self):
         if self._hwnd == 0:
