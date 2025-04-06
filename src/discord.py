@@ -7,12 +7,12 @@ import requests
 import utils
 from config import ConfigManager
 from constants import NAME
-from data import Data
+from macro.macro import Macro
 from roblox import RobloxTypes
 
 
 class Webhook:
-    def send(self, roblox_type: RobloxTypes, data: Data, webhook_images: dict) -> requests.Response | None:
+    def send(self, macro: Macro, data: Macro.Data, roblox_type: RobloxTypes, webhook_images: dict) -> requests.Response | None:
         url = ConfigManager().get(["webhook", "url"])
         if not url:
             return
@@ -47,7 +47,7 @@ class Webhook:
                     },
                     *([{
                         "name": "Server link :desktop:",
-                        "value": f"[Link to server](https://www.roblox.com/games/6161235818/Twisted-BETA?privateServerLinkCode={server})",
+                        "value": f"[Link to server](https://www.roblox.com/games/{macro.PLACE_ID}/?privateServerLinkCode={server})",
                         "inline": True
                     }] if server and share_link else [])
                 ],

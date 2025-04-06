@@ -9,7 +9,6 @@ from config import ConfigManager
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
 
-PLACE_ID = "14170731342"
 
 class Colors:
     GREEN = (127, 255, 170)
@@ -30,6 +29,8 @@ class Colors:
 
 
 class TwistedMacro_latest(Macro):
+    PLACE_ID = "14170731342"
+
     class Data(Macro.Data):
         FORMAT = {
             "TEMPERATURE": int,
@@ -68,7 +69,7 @@ class TwistedMacro_latest(Macro):
     def start_roblox(self, img: np.ndarray) -> bool:
         # START ROBLOX AND WAIT FOR HWND
         server = ConfigManager().get(["roblox", self.roblox.name, "server"])
-        self.roblox.join_place(PLACE_ID, server)
+        self.roblox.join_place(self.PLACE_ID, server)
 
         time.sleep(5)
         return True

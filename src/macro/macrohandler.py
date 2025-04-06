@@ -67,7 +67,7 @@ class MacroHandler(threading.Thread):
                 if self.check_conditions(data):
                     logging.info("Conditions passed")
 
-                    self.webhook.send(roblox_type=self.roblox.name, data=data, webhook_images=webhook_images)
+                    self.webhook.send(macro=self._macro.__class__, data=data, roblox_type=self.roblox.name, webhook_images=webhook_images)
 
                     for f in self._pause_callbacks: f()
 

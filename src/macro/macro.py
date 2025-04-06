@@ -13,6 +13,8 @@ class PhaseError(Exception):
         super().__init__(f"Encountered exception in phase {phase}")
 
 class Macro:
+    PLACE_ID = None
+
     class Data(Data):
         pass
 
