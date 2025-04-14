@@ -11,6 +11,5 @@ PyInstaller.__main__.run([
     "-n", "ReTwisted",
     "-i=assets/icon.png",
     "--add-data=assets/icon.png;assets",
-    "--add-data=assets/responses.data;assets",
     "--add-data=assets/samples.data;assets",
 ])

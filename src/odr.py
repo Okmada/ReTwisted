@@ -1,33 +1,33 @@
+import json
+
 import cv2
 import numpy as np
 
 from utils import Singleton, resource_path
 
-SAMPLES_FILE = "assets/samples.data"
-RESPONSES_FILE = "assets/responses.data"
 
 class ODR(metaclass=Singleton):
+    SAMPLES_FILE = "assets/samples.data"
+
     def __init__(self):
         self.model = cv2.ml.KNearest.create()
 
-        self.samples = np.ndarray((0, 100), np.float32)
-        self.responses = np.ndarray((0, 1), np.float32)
+        self.samples = []
 
     def load(self) -> None:
-        self.samples = np.loadtxt(resource_path(SAMPLES_FILE), np.float32)
-        self.responses = np.loadtxt(resource_path(RESPONSES_FILE), np.float32)
-        self.responses = self.responses.reshape((self.responses.size, 1))
+        with open(resource_path(self.SAMPLES_FILE), "r") as file:
+            self.samples = json.load(file)
 
     def save(self) -> None:
-        np.savetxt(resource_path(SAMPLES_FILE), self.samples)
-        np.savetxt(resource_path(RESPONSES_FILE), self.responses)
+        with open(resource_path(self.SAMPLES_FILE), "w") as file:
+            json.dump(self.samples, file)
 
     def append(self, sample: np.ndarray, response: int) -> None:
-        np.append(self.samples, self.prepare_for_odr(sample))
-        np.append(self.responses, response)
+        self.samples.append(sample + [response])
 
     def train(self) -> None:
-        self.model.train(samples=self.samples, responses=self.responses, layout=cv2.ml.ROW_SAMPLE)
+        npSamples = np.array(self.samples).astype(np.float32)
+        self.model.train(samples=npSamples[:, :-1], responses=npSamples[:, -1:], layout=cv2.ml.ROW_SAMPLE)
 
     def detect(self, sample: np.ndarray) -> int:
         prepped = self.prepare_for_odr(sample)
