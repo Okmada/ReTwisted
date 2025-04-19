@@ -2,6 +2,7 @@ import functools
 import logging
 import time
 from typing import List, Type
+import numpy as np
 
 import numpy as np
 
@@ -39,8 +40,8 @@ class Macro:
 
         assert return_val is not None, "Return value is None"
 
-        pass_n, pass_delay = getattr(func, "ensure", (1, None))
-        fail_n, fail_delay, fail_increment = getattr(func, "max_tries", (None, None, None))
+        pass_n, pass_step = getattr(func, "ensure", (1, 1))
+        fail_n, fail_step = getattr(func, "max_tries", (None, -1))
 
         if return_val:
             self._passes += 1
@@ -50,9 +51,7 @@ class Macro:
                 self._passes = 0
                 self._fails = 0
 
-                self._chnage_phase(1)
-            else:
-                time.sleep(pass_delay)
+                self._chnage_phase(pass_step)
         else:
             self._passes = 0
             self._fails += 1
@@ -62,9 +61,7 @@ class Macro:
                     self._passes = 0
                     self._fails = 0
 
-                    self._chnage_phase(fail_increment)
-                else:
-                    time.sleep(fail_delay)
+                    self._chnage_phase(fail_step)
 
         return return_val
 
@@ -88,15 +85,15 @@ class Macro:
             Controller().sync_click(self.roblox.hwnd, self.roblox.offset_point(point))
         return True
 
-def ensure_n_times(n: int, delay: float):
+def ensure_n_times(n: int, step=1):
     def wrapper(func):
-        func.ensure = (n, delay)
+        func.ensure = (n, step)
         return func
     return wrapper
 
-def fail_n_times(n: int, delay: float, steps_return: int):
+def fail_n_times(n: int, step=-1):
     def wrapper(func):
-        func.max_tries = (n, delay, steps_return)
+        func.max_tries = (n, step)
         return func
     return wrapper
 

@@ -46,7 +46,7 @@ def mask_transparent(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return transparent_image
 
 def upscale(image: np.ndarray, coef: int):
-    return cv2.resize(image, (image.shape[1] * coef, image.shape[0] * coef), interpolation=cv2.INTER_CUBIC)
+    return cv2.resize(image, (round(image.shape[1] * coef), round(image.shape[0] * coef)), interpolation=cv2.INTER_CUBIC)
 
 def mask_color(image: np.ndarray, color: np.ndarray) -> np.ndarray:
     return np.all(image == color, axis=len(image.shape) - 1).astype(np.uint8) * 255

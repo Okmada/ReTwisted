@@ -3,12 +3,17 @@ import threading
 import time
 from typing import Any, Callable
 
+import enum
 from config import ConfigManager
 from data import Data
 from discord import Webhook
-from macro.macros import Macros
+from macro.macros import Macros, DefaultMacro
 from roblox import Roblox
 
+class States(enum.Enum):
+    START_ROBLOX = enum.auto()
+    AWAIT_ROBLOX = enum.auto()
+    RUN_MACRO = enum.auto()
 
 class MacroHandler(threading.Thread):
     def __init__(self, roblox: Roblox, webhook: Webhook) -> None:
@@ -19,10 +24,12 @@ class MacroHandler(threading.Thread):
         self.roblox = roblox
         self.webhook = webhook
 
-        self._macro_name = None
-        self._macro = None
+        self._macro = Macros[DefaultMacro](self.roblox)
+
+        self._state = States.START_ROBLOX
 
         self._time = None
+        self._last_frame_time = None
         self._data_callbacks = []
         self._pause_callbacks = []
 
@@ -30,55 +37,72 @@ class MacroHandler(threading.Thread):
 
     def change_macro(self, macro: str):
         if macro in Macros:
-            self._macro_name = macro
             self._macro = Macros[macro](self.roblox)
+            self.restart()
 
     def run(self):
         while True:
             try:
                 self.pause_event.wait()
 
-                if self._macro_name is None or self._macro is None:
-                    logging.error("No macro selected")
-                    time.sleep(5)
-                    continue
-
                 if self.is_timedout():
                     raise Exception("Time for reroll exceeded limit (timeout)")
 
-                if self.roblox.is_crashed():
-                    raise Exception("Roblox crashed")
+                match (self._state):
+                    case (States.START_ROBLOX):
+                        linkCode = ConfigManager().get(["roblox", self.roblox.name, "server"])
+                        self.roblox.join_place(self._macro.PLACE_ID, linkCode)
 
-                img = self.roblox.get_screenshot()
+                        self._state = States.AWAIT_ROBLOX
+                        continue
 
-                return_val = self._macro(img)
+                    case (States.AWAIT_ROBLOX):
+                        if (self.roblox.hwnd != 0):
+                            self._state = States.RUN_MACRO
+                        else:
+                            time.sleep(1)
+                        continue
 
-                if isinstance(return_val, bool):
-                    continue
+                    case (States.RUN_MACRO):
+                        if self.roblox.is_crashed():
+                            raise Exception("Roblox crashed")
+                        
+                        time_now = time.time()
+                        time_delta = time_now - (self._last_frame_time or 0)
+                        time_to_sleep = (1 / 2) - time_delta
 
-                data, webhook_images = return_val
+                        if time_to_sleep > 0:
+                            time.sleep(time_to_sleep)
+        
+                        if (frame := self.roblox.get_frame()) is None:
+                            continue
+                        self._last_frame_time = time_now
 
-                logging.info(data)
+                        return_val = self._macro(frame)
 
-                for f in self._data_callbacks: f(data)
+                        if isinstance(return_val, bool):
+                            continue
 
-                if self.check_conditions(data):
-                    logging.info("Conditions passed")
+                        data, webhook_images = return_val
 
-                    self.webhook.send(macro=self._macro.__class__, data=data, roblox_type=self.roblox.name, webhook_images=webhook_images)
+                        logging.info(data)
 
-                    for f in self._pause_callbacks: f()
+                        for f in self._data_callbacks: f(data)
 
-                self._time = time.time()
+                        if self.check_conditions(data):
+                            logging.info("Conditions passed")
+
+                            self.webhook.send(macro=self._macro.__class__, data=data, roblox_type=self.roblox.name, webhook_images=webhook_images)
+
+                            for f in self._pause_callbacks: f()
+
+                        self.restart()
             except Exception as e:
                 logging.exception(e)
 
                 self.roblox.close_roblox()
-
                 time.sleep(5)
-
-                self._macro.restart()
-                self._time = time.time()
+                self.restart()
 
     def pause(self) -> None:
         self.pause_event.clear()
@@ -88,6 +112,11 @@ class MacroHandler(threading.Thread):
             self._time = time.time()
 
             self.pause_event.set()
+
+    def restart(self):
+        self._state = States.START_ROBLOX
+        self._macro.restart()
+        self._time = time.time()
 
     def is_timedout(self) -> bool:
         time_max = ConfigManager().get(["timeout"])
@@ -104,7 +133,7 @@ class MacroHandler(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data: Data) -> bool:
-        for group in ConfigManager().get(["conditions", self._macro_name]):
+        for group in ConfigManager().get(["conditions", self._macro.__class__.__name__]):
             for condition in group:
                 what, comparison_type, expected_data = condition
 

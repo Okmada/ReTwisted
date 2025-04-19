@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 
 import simplecv as scv
-from config import ConfigManager
 from controller import Controller
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
@@ -60,21 +59,13 @@ class TwistedMacro_latest(Macro):
     @property
     def steps(self):
         return[
-            self.start_roblox,
+            lambda *_: time.sleep(5) or True,
             self.await_game,
             self.navigate_game,
             self.close_chat,
             self.open_data_menu,
             self.get_data,
         ]
-
-    def start_roblox(self, img: np.ndarray) -> bool:
-        # START ROBLOX AND WAIT FOR HWND
-        server = ConfigManager().get(["roblox", self.roblox.name, "server"])
-        self.roblox.join_place(self.PLACE_ID, server)
-
-        time.sleep(5)
-        return True
 
     def get_game_status(self, img: np.ndarray) -> Tuple[bool]:
         # HELPER FUNCTION
@@ -87,7 +78,7 @@ class TwistedMacro_latest(Macro):
 
         return bool(loaded_select), bool(loaded_game)
 
-    @ensure_n_times(n=3, delay=.3)
+    @ensure_n_times(n=3)
     def await_game(self, img: np.ndarray) -> bool:
         # WAIT TO LOAD INTO GAME
         return True in self.get_game_status(img)
@@ -132,7 +123,7 @@ class TwistedMacro_latest(Macro):
         return True
 
     @safe_execution
-    @fail_n_times(n=5, delay=.5, steps_return=-1)
+    @fail_n_times(n=5)
     def get_data(self, img: np.ndarray) -> False | Type[Data]:
         data_output = {}
         data_format_iterator = iter(self.Data.FORMAT.items())

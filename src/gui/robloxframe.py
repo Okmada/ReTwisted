@@ -167,7 +167,15 @@ class RobloxFrame:
                 button.config(text="Roblox not found")
                 return
 
-            image = macro.roblox.get_screenshot()
+            image = macro.roblox.get_frame()
+            if image is None:
+                if hasattr(button, "timer"):
+                    button.timer.cancel()
+                button.timer = threading.Timer(1.5, lambda: screenshot_button.config(text=screenshot_button.original_text))
+                button.timer.start()
+                button.config(text="Could not grab screenshot")
+                return
+            
             buffer = cv2.imencode(".bmp", image)[1].tobytes()[14:]
 
             OpenClipboard(None)

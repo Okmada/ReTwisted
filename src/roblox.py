@@ -5,42 +5,15 @@ import logging
 import os
 import time
 
-import cv2
-import numpy as np
-
+import simplecv as scv
+from capture.d3dcapture import CaptureSession
 from config import ConfigManager
 
 user32 = ctypes.windll.user32
-gdi32 = ctypes.windll.gdi32
 
 WM_CLOSE = 0x10
 
-SRCCOPY = 0xCC0020
-
 MONITOR_DEFAULTTOPRIMARY = 0x1
-
-class BitmapInfoHeader(ctypes.Structure):
-    _fields_ = [("biSize", ctypes.c_ulong),
-                ("biWidth", ctypes.c_long),
-                ("biHeight", ctypes.c_long),
-                ("biPlanes", ctypes.c_ushort),
-                ("biBitCount", ctypes.c_ushort),
-                ("biCompression", ctypes.c_ulong),
-                ("biSizeImage", ctypes.c_ulong),
-                ("biXPelsPerMeter", ctypes.c_long),
-                ("biYPelsPerMeter", ctypes.c_long),
-                ("biClrUsed", ctypes.c_ulong),
-                ("biClrImportant", ctypes.c_ulong)]
-
-class RGBQuad(ctypes.Structure):
-    _fields_ = [("rgbBlue", ctypes.c_byte),
-                ("rgbGreen", ctypes.c_byte),
-                ("rgbRed", ctypes.c_byte),
-                ("rgbReserved", ctypes.c_byte)]
-
-class BitmapInfo(ctypes.Structure):
-    _fields_ = [("bmiHeader", BitmapInfoHeader),
-                ("bmiColors", RGBQuad)]
 
 class MonitorInfo(ctypes.Structure):
     _fields_ = [("cbSize", ctypes.c_uint),
@@ -56,8 +29,12 @@ class Roblox:
     def __init__(self, roblox_type: RobloxTypes):
         assert roblox_type in RobloxTypes
 
+        self._capture_session = CaptureSession()
+        self._capture_session.frame_callback = self._frame_callback
+        self._last_frame = None
+        self._last_frame_time = 0
+
         self._roblox_type = roblox_type
-        self._hwnd: int = 0
 
     def start_roblox(self, arg):
         match self._roblox_type:
@@ -87,8 +64,6 @@ class Roblox:
             case _:
                 return None
 
-        self.find_roblox()
-
     def join_place(self, place_id: str, linkCode=""):
         assert place_id.isnumeric()
         arg = f"roblox://placeId={place_id}" + (f"&linkCode={linkCode}" if linkCode else "")
@@ -99,44 +74,54 @@ class Roblox:
         arg = f"roblox://navigation/share_links?code={code}&type=Server"
         self.start_roblox(arg)
 
-    def find_roblox(self, retries=20):
-        for _ in range(retries):
-            if hwnd := user32.FindWindowW(self._roblox_type.name, "Roblox"):
-                self._hwnd = hwnd
-                break
-            time.sleep(1)
-        else:
-            raise Exception("Could not find roblox")
-
     def close_roblox(self):
+        self._capture_session.stop()
         match self._roblox_type:
             case RobloxTypes.WINDOWSCLIENT:
                 os.popen('powershell.exe -Command "Get-Process -Name RobloxPlayerBeta -ErrorAction Ignore | ForEach-Object {$_.Kill()}"')
             case RobloxTypes.ApplicationFrameWindow:
-                if self._hwnd: user32.PostMessageW(self._hwnd, WM_CLOSE, 0, 0)
-        self._hwnd = 0
+                if hwnd := self.hwnd: 
+                    user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+
+    def get_frame(self):
+        if (time.time() - self._last_frame_time) > 5:
+            self.recreate_capture()
+            self._last_frame_time = time.time()
+
+        frame = self._last_frame
+        self._last_frame = None
+        return frame
+
+    def recreate_capture(self):
+        hwnd = self.hwnd
+
+        logging.debug("Recreating capture")
+
+        if hwnd and user32.IsWindow(hwnd):
+            try:
+                self._capture_session.stop()
+                self._capture_session.start(hwnd, capture_cursor=False)
+            except Exception as e:
+                logging.debug("Failed to recreate capture: " + str(e))
 
     def is_crashed(self):
-        if self._hwnd == 0:
-            return False
+        hwnd = self.hwnd
+        if not self.hwnd:
+            return True
 
         if self._roblox_type == RobloxTypes.WINDOWSCLIENT:
             if win := user32.FindWindowW(None, "Roblox Crash"):
                 user32.PostMessageW(win, WM_CLOSE, 0, 0)
-                self._hwnd = 0
                 return True
-
-        if not user32.IsWindow(self._hwnd):
-            self._hwnd = 0
-            return True
-        else:
-            return False
+            
+        return not user32.IsWindow(hwnd)
 
     def is_fullscreen(self) -> bool:
-        if not self._hwnd:
+        hwnd = self.hwnd
+        if not hwnd:
             return False
 
-        window_monitor = user32.MonitorFromWindow(self._hwnd, MONITOR_DEFAULTTOPRIMARY)
+        window_monitor = user32.MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY)
 
         info = MonitorInfo()
         info.cbSize = ctypes.sizeof(info)
@@ -146,60 +131,10 @@ class Roblox:
 
         window_rect = ctypes.wintypes.RECT()
 
-        if not user32.GetWindowRect(self._hwnd, ctypes.byref(window_rect)):
+        if not user32.GetWindowRect(hwnd, ctypes.byref(window_rect)):
             return False
 
         return bytes(window_rect) == bytes(info.rcMonitor)
-
-    def get_screenshot(self):
-        if not user32.IsWindow(self._hwnd):
-            return None
-
-        scale_factor = user32.GetDpiForWindow(self._hwnd) / 96.0
-
-        rect = ctypes.wintypes.RECT()
-        user32.GetWindowRect(self._hwnd, ctypes.byref(rect))
-
-        unscaled_w, unscaled_h = rect.right - rect.left, rect.bottom - rect.top
-        scaled_w, scaled_h = round(unscaled_w * scale_factor), round(unscaled_h * scale_factor)
-
-        hwndDC = user32.GetWindowDC(self._hwnd)
-        mfcDC = gdi32.CreateCompatibleDC(hwndDC)
-
-        saveBitMap = gdi32.CreateCompatibleBitmap(hwndDC, scaled_w, scaled_h)
-        gdi32.SelectObject(mfcDC, saveBitMap)
-
-        user32.PrintWindow(self._hwnd, mfcDC, 2)
-
-        bmpinfo = BitmapInfo()
-        bmpinfo.bmiHeader.biSize = ctypes.sizeof(BitmapInfoHeader)
-        bmpinfo.bmiHeader.biWidth = scaled_w
-        bmpinfo.bmiHeader.biHeight = -scaled_h
-        bmpinfo.bmiHeader.biPlanes = 1
-        bmpinfo.bmiHeader.biBitCount = 32
-        bmpinfo.bmiHeader.biCompression = 0
-
-        bmpstr = ctypes.create_string_buffer(scaled_w * scaled_h * 4)
-        gdi32.GetDIBits(mfcDC, saveBitMap, 0, scaled_h, bmpstr, ctypes.byref(bmpinfo), 0)
-
-        gdi32.DeleteObject(saveBitMap)
-        gdi32.DeleteDC(mfcDC)
-        user32.ReleaseDC(self._hwnd, hwndDC)
-
-        img = np.frombuffer(bmpstr.raw, dtype=np.uint8)
-        img.shape = (scaled_h, scaled_w, 4)
-        img = img[:, :, :3]
-
-        edge, topedge = self._borders
-
-        if not self.is_fullscreen():
-            scaled_edge, scaled_topedge = round(edge * scale_factor), round(topedge * scale_factor)
-            img = img[scaled_topedge:-scaled_edge, scaled_edge:-scaled_edge]
-
-        out_dims = int(unscaled_w - 2 * edge), int(unscaled_h - (edge + topedge))
-        img = cv2.resize(img, out_dims, interpolation=cv2.INTER_NEAREST)
-
-        return img.astype(dtype=np.uint8)
 
     def offset_point(self, point):
         ox, oy = map(round, self._borders)
@@ -212,26 +147,30 @@ class Roblox:
     @property
     def name(self):
         return self._roblox_type.name
-
+    
     @property
     def hwnd(self):
-        return self._hwnd
+        return user32.FindWindowW(self._roblox_type.name, "Roblox")
 
     @property
     def _borders(self):
+        hwnd = self.hwnd
+        if not hwnd:
+            return 0, 0
+
         if self.is_fullscreen():
             return 0, 0
 
         crect = ctypes.wintypes.RECT()
-        user32.GetClientRect(self._hwnd, ctypes.byref(crect))
+        user32.GetClientRect(hwnd, ctypes.byref(crect))
 
         rect = ctypes.wintypes.RECT()
-        user32.GetWindowRect(self._hwnd, ctypes.byref(rect))
+        user32.GetWindowRect(hwnd, ctypes.byref(rect))
 
         edge = (rect.right - rect.left - crect.right + crect.left) / 2
         match self._roblox_type:
             case RobloxTypes.ApplicationFrameWindow:
-                if user32.IsZoomed(self._hwnd):
+                if user32.IsZoomed(hwnd):
                     topedge = 40
                 else:
                     topedge = 33
@@ -239,3 +178,24 @@ class Roblox:
                 topedge = 31
 
         return edge, topedge
+
+    def _frame_callback(self, *event):
+        frame = self._capture_session.get_frame()
+
+        if frame is None:
+            return
+
+        scale_factor = 1
+        if hwnd := self.hwnd:
+            scale_factor = user32.GetDpiForWindow(hwnd) / 96.0
+
+        edge, topedge = self._borders
+
+        if not self.is_fullscreen():
+            scaled_edge, scaled_topedge = round(edge * scale_factor), round(topedge * scale_factor)
+            frame = frame[scaled_topedge:-1, 1:-1]
+
+        frame = scv.upscale(frame, 1 / scale_factor)
+
+        self._last_frame_time = time.time()
+        self._last_frame = frame
