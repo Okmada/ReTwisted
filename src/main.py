@@ -61,7 +61,7 @@ gui_main.unpause_events.append(controller.unpause)
 for roblox_type in RobloxTypes:
     roblox_game = Roblox(roblox_type)
 
-    macro = MacroHandler(roblox_game, controller, webhook)
+    macro = MacroHandler(roblox_game, webhook)
     macro.add_pause_callback(lambda *_: gui_pause.open())
     macro.add_data_callback(data_logger.append)
 

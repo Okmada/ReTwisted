@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from typing import Callable, List, Tuple
+from utils import Singleton
 
 user32 = ctypes.windll.user32
 
@@ -69,7 +70,7 @@ def get_class_name(hwnd: int) -> str:
     user32.GetClassNameW(hwnd, class_name, 256)
     return class_name.value
 
-class Controller(threading.Thread):
+class Controller(threading.Thread, metaclass=Singleton):
     def __init__(self) -> None:
         super().__init__(daemon=True)
         self.name = "Controller"

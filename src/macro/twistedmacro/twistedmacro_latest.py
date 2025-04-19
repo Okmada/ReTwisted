@@ -6,6 +6,7 @@ import numpy as np
 
 import simplecv as scv
 from config import ConfigManager
+from controller import Controller
 from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
 
@@ -101,14 +102,14 @@ class TwistedMacro_latest(Macro):
                 time.sleep(.5)
 
                 point = self.roblox.offset_point((round(W * 0.5 + 3), round(H * 0.69 + 3)))
-                self.controller.async_click(self.roblox.hwnd, point)
-                self.controller.sync_click(self.roblox.hwnd, point)
+                Controller().async_click(self.roblox.hwnd, point)
+                Controller().sync_click(self.roblox.hwnd, point)
 
                 time.sleep(1)
 
                 point = self.roblox.offset_point((round(W * 0.5 + H * 0.12 + 3), round(H * 0.45 + 10)))
-                self.controller.async_click(self.roblox.hwnd, point)
-                self.controller.sync_click(self.roblox.hwnd, point)
+                Controller().async_click(self.roblox.hwnd, point)
+                Controller().sync_click(self.roblox.hwnd, point)
 
                 time.sleep(5)
 
@@ -120,14 +121,14 @@ class TwistedMacro_latest(Macro):
     def open_data_menu(self, img: np.ndarray) -> bool:
         # CLOSE CHAT
         if self.roblox.is_chat_open():
-            self.controller.sync_click(self.roblox.hwnd, self.roblox.get_chat_pos())
+            Controller().sync_click(self.roblox.hwnd, self.roblox.get_chat_pos())
 
         # OPEN DATA MENU
         H, W, *_ = img.shape
 
         point = self.roblox.offset_point((round(W * 0.5 - 67.67), 85))
 
-        self.controller.sync_click(self.roblox.hwnd, point)
+        Controller().sync_click(self.roblox.hwnd, point)
 
         time.sleep(1)
 

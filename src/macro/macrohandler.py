@@ -4,7 +4,6 @@ import time
 from typing import Any, Callable
 
 from config import ConfigManager
-from controller import Controller
 from data import Data
 from discord import Webhook
 from macro.macros import Macros
@@ -12,13 +11,12 @@ from roblox import Roblox
 
 
 class MacroHandler(threading.Thread):
-    def __init__(self, roblox: Roblox, controller: Controller, webhook: Webhook) -> None:
+    def __init__(self, roblox: Roblox, webhook: Webhook) -> None:
         super().__init__(daemon=True, name=roblox.friendly_name)
 
         self.pause_event = threading.Event()
 
         self.roblox = roblox
-        self.controller = controller
         self.webhook = webhook
 
         self._macro_name = None
@@ -33,7 +31,7 @@ class MacroHandler(threading.Thread):
     def change_macro(self, macro: str):
         if macro in Macros:
             self._macro_name = macro
-            self._macro = Macros[macro](self.roblox, self.controller)
+            self._macro = Macros[macro](self.roblox)
 
     def run(self):
         while True:

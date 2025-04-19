@@ -18,9 +18,8 @@ class Macro:
     class Data(Data):
         pass
 
-    def __init__(self, roblox: Roblox, controller: Controller) -> None:
+    def __init__(self, roblox: Roblox) -> None:
         self.roblox = roblox
-        self.controller = controller
 
         self._passes = 0
         self._fails = 0
