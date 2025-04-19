@@ -63,6 +63,7 @@ class TwistedMacro_latest(Macro):
             self.start_roblox,
             self.await_game,
             self.navigate_game,
+            self.close_chat,
             self.open_data_menu,
             self.get_data,
         ]
@@ -119,10 +120,6 @@ class TwistedMacro_latest(Macro):
         return False
 
     def open_data_menu(self, img: np.ndarray) -> bool:
-        # CLOSE CHAT
-        if self.roblox.is_chat_open():
-            Controller().sync_click(self.roblox.hwnd, self.roblox.get_chat_pos())
-
         # OPEN DATA MENU
         H, W, *_ = img.shape
 

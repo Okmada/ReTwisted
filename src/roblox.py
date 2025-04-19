@@ -13,9 +13,6 @@ from config import ConfigManager
 user32 = ctypes.windll.user32
 gdi32 = ctypes.windll.gdi32
 
-CHAT_COLOR = (248, 247, 247)
-CHAT_BB = {"left": 126, "top": 23, "right": 150, "bottom": 45}
-
 WM_CLOSE = 0x10
 
 SRCCOPY = 0xCC0020
@@ -153,17 +150,6 @@ class Roblox:
             return False
 
         return bytes(window_rect) == bytes(info.rcMonitor)
-
-    def is_chat_open(self):
-        img = self.get_screenshot()
-
-        chat_slice = img[CHAT_BB["top"]:CHAT_BB["bottom"], CHAT_BB["left"]:CHAT_BB["right"]]
-        ratio = np.count_nonzero(np.all(chat_slice == CHAT_COLOR, axis=2)) / np.multiply(*chat_slice.shape[:2])
-
-        return ratio >= .25
-
-    def get_chat_pos(self):
-        return self.offset_point(((CHAT_BB["left"] + CHAT_BB["right"]) // 2, (CHAT_BB["top"] + CHAT_BB["bottom"]) // 2))
 
     def get_screenshot(self):
         if not user32.IsWindow(self._hwnd):

@@ -3,10 +3,14 @@ import logging
 import time
 from typing import List, Type
 
+import numpy as np
+
 from controller import Controller
 from data import Data
 from roblox import Roblox
 
+CHAT_COLOR = (241, 239, 239)
+CHAT_BB = {"left": 126, "top": 23, "right": 150, "bottom": 45}
 
 class PhaseError(Exception):
     def __init__(self, phase: int) -> None:
@@ -74,6 +78,15 @@ class Macro:
     def _chnage_phase(self, increment: int) -> None:
         self._phase += increment
         self._phase %= len(self.steps)
+
+    def close_chat(self, img: np.ndarray) -> bool:
+        chat_slice = img[CHAT_BB["top"]:CHAT_BB["bottom"], CHAT_BB["left"]:CHAT_BB["right"]]
+        ratio = np.count_nonzero(np.all(chat_slice == CHAT_COLOR, axis=2)) / np.multiply(*chat_slice.shape[:2])
+
+        if ratio >= .25:
+            point = ((CHAT_BB["left"] + CHAT_BB["right"]) // 2, (CHAT_BB["top"] + CHAT_BB["bottom"]) // 2)
+            Controller().sync_click(self.roblox.hwnd, self.roblox.offset_point(point))
+        return True
 
 def ensure_n_times(n: int, delay: float):
     def wrapper(func):
