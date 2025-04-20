@@ -32,6 +32,7 @@ class MacroHandler(threading.Thread):
         self._last_frame_time = None
         self._data_callbacks = []
         self._pause_callbacks = []
+        self._last_data = None
 
         self.start()
 
@@ -84,6 +85,10 @@ class MacroHandler(threading.Thread):
                             continue
 
                         data, webhook_images = return_val
+
+                        if self._last_data == data:
+                            raise Exception("Same data as previous roll, restarting roblox")
+                        self._last_data = data
 
                         logging.info(data)
 
