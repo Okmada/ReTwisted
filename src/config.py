@@ -34,6 +34,7 @@ class ConfigManager(metaclass=Singleton):
             ConfigValue("roblox player launcher override", str, ""),
             ConfigGroup("conditions", [
                 ConfigValue("TwistedMacro_latest", list, []),
+                ConfigValue("TwistedMacro_1_19_1", list, []),
             ]),
         ])
 
