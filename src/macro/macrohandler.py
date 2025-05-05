@@ -9,6 +9,7 @@ from data import Data
 from discord import Webhook
 from macro.macros import Macros, DefaultMacro
 from roblox import Roblox
+from datalogger import DataLogger
 
 class States(enum.Enum):
     START_ROBLOX = enum.auto()
@@ -92,7 +93,8 @@ class MacroHandler(threading.Thread):
 
                         logging.info(data)
 
-                        for f in self._data_callbacks: f(data)
+                        if ConfigManager().get(["save data"]):
+                            DataLogger.append(data, "%s-data.csv" % self._macro.__class__.__name__)
 
                         if self.check_conditions(data):
                             logging.info("Conditions passed")

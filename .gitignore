@@ -1,6 +1,6 @@
 # Config and data file
 .config.json
-data.csv
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
