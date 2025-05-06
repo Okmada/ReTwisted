@@ -11,6 +11,11 @@ from macro.macro import Macro, ensure_n_times, fail_n_times, safe_execution
 from odr import ODR
 
 
+class ODRTwisted_1_19_1(ODR):
+    SAMPLES_FILE = "assets/samples-twisted1_19_1.data"
+ODRTwisted_1_19_1().load()
+ODRTwisted_1_19_1().train()
+
 class Colors:
     WHITE = (255, 255, 255)
 
@@ -198,7 +203,7 @@ class TwistedMacro_1_19_1(Macro):
                             number += "."
                         continue
 
-                    result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
+                    result = ODRTwisted_1_19_1().detect(character_img)
                     number += str(result)
 
                 data_output[data_name] = number[::-1]
