@@ -198,24 +198,9 @@ class TwistedMacro_latest(Macro):
 
                 scv.split_characters(color_text)
 
-                characters_contours = scv.find_contours(color_text)
-                characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
-
                 data_name, data_type = next(data_format_iterator)
 
-                number = ""
-                for character_contour in characters_contours:
-                    character_img = scv.extract_contour(color_text, character_contour)
-
-                    if character_img.shape[0] / color_text.shape[0] < 0.5:
-                        if "." not in number and data_type == float:
-                            number += "."
-                        continue
-
-                    result = ODR().detect(character_img)
-                    number += str(result)
-
-                data_output[data_name] = number[::-1]
+                data_output[data_name] = scv.read_number(ODR(), color_text, data_type)
 
         # COMPOSITES
         composites = scv.extract_contour(img, composites_contour)

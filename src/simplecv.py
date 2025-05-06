@@ -2,6 +2,7 @@ from typing import List, Tuple
 
 import cv2
 import numpy as np
+from odr import ODR
 
 
 def find_contours(image: np.ndarray) -> List[Tuple[Tuple[int, int]]]:
@@ -80,3 +81,21 @@ def split_characters(img: np.ndarray) -> None:
                 far2 = tuple(contour[f2][0])
 
                 cv2.line(cropped, far1, far2, 0, 10)
+
+def read_number(odr: ODR, img: np.ndarray, dtype: int | float) -> int | float:
+    characters_contours = find_contours(img)
+    characters_contours.sort(key=lambda e: get_contour_center(e)[0], reverse=True)
+
+    number = ""
+    for character_contour in characters_contours:
+        character_img = extract_contour(img, character_contour)
+
+        if character_img.shape[0] / img.shape[0] < 0.5:
+            if "." not in number and dtype == float:
+                number += "."
+            continue
+
+        result = odr.detect(character_img)
+        number += str(result)
+
+    return dtype(number[::-1])

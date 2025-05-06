@@ -189,24 +189,9 @@ class TwistedMacro_1_19_1(Macro):
 
                 scv.split_characters(numbers_img)
 
-                characters_contours = scv.find_contours(numbers_img)
-                characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
-
                 data_name, data_type = next(data_format_iterator)
 
-                number = ""
-                for character_contour in characters_contours:
-                    character_img = scv.extract_contour(numbers_img, character_contour)
-
-                    if character_img.shape[0] / numbers_img.shape[0] < 0.5:
-                        if "." not in number and data_type == float:
-                            number += "."
-                        continue
-
-                    result = ODRTwisted_1_19_1().detect(character_img)
-                    number += str(result)
-
-                data_output[data_name] = number[::-1]
+                data_output[data_name] = scv.read_number(ODRTwisted_1_19_1(), numbers_img, data_type)
 
         # DAYS
         days_img = scv.extract_contour(img, days_contour)
