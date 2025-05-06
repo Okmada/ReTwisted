@@ -1,5 +1,5 @@
 # Config and data file
-.config.json
+config.json
 *.csv
 
 # Byte-compiled / optimized / DLL files

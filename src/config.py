@@ -5,7 +5,7 @@ from utils import Singleton
 
 
 class ConfigManager(metaclass=Singleton):
-    CONFIG_FILE = ".config.json"
+    CONFIG_FILE = "config.json"
 
     def __init__(self):
         try:
