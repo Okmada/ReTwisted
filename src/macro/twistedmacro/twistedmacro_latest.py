@@ -212,7 +212,7 @@ class TwistedMacro_latest(Macro):
                             number += "."
                         continue
 
-                    result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
+                    result = ODR().detect(character_img)
                     number += str(result)
 
                 data_output[data_name] = number[::-1]
@@ -242,7 +242,7 @@ class TwistedMacro_latest(Macro):
                 if character_img.shape[0] / composite.shape[0] < 0.5:
                     break
 
-                result = ODR().detect(cv2.cvtColor(character_img, cv2.COLOR_GRAY2BGR))
+                result = ODR().detect(character_img)
                 number += str(result)
 
             data_output[data_name] = number[::-1]

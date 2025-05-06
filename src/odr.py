@@ -49,5 +49,5 @@ class ODR(metaclass=Singleton):
 
     def prepare_for_odr(self, image: np.ndarray) -> np.ndarray:
         if len(image.shape) == 3:
-            cv2.cvtColor(image, cv2.COLOR_BGR2GRAY, image)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         return cv2.resize(image, (10, 10))
