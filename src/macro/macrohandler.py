@@ -93,6 +93,8 @@ class MacroHandler(threading.Thread):
 
                         logging.info(data)
 
+                        for f in self._data_callbacks: f(data)
+
                         if ConfigManager().get(["save data"]):
                             DataLogger.append(data, "%s-data.csv" % self._macro.__class__.__name__)
 
