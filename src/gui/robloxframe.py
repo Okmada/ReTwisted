@@ -13,6 +13,7 @@ from data import Data
 from macro.macrohandler import MacroHandler
 from macro.macros import DefaultMacro, Macros
 
+CF_TEXT = 1
 CF_DIB = 8
 NO_ERROR = 0
 GMEM_MOVEABLE = 0x0002
@@ -175,7 +176,7 @@ class RobloxFrame:
                 button.timer.start()
                 button.config(text="Could not grab screenshot")
                 return
-            
+
             buffer = cv2.imencode(".bmp", image)[1].tobytes()[14:]
 
             OpenClipboard(None)
@@ -187,7 +188,30 @@ class RobloxFrame:
             SetClipboardData(CF_DIB, hmem)
             CloseClipboard()
 
-        screenshot_button = tk.Button(info_frame_bottom, text="Copy screenshot")
+        def copy_link(button):
+            server =  ConfigManager().get(["roblox", macro.roblox.name, "server"])
+            link = f"https://www.roblox.com/games/{macro._macro.PLACE_ID}/" + (f"?privateServerLinkCode={server}" if server else "")
+
+            buffer = link.encode("utf-8")
+
+            OpenClipboard(None)
+            EmptyClipboard()
+            hmem = GlobalAlloc(GMEM_MOVEABLE, len(buffer) + 1)
+            pmem = GlobalLock(hmem)
+            ctypes.memmove(pmem, buffer, len(buffer) + 1)
+            GlobalUnlock(hmem)
+            SetClipboardData(CF_TEXT, hmem)
+            CloseClipboard()
+
+        copy_frame = tk.Frame(info_frame_bottom)
+        copy_frame.pack(fill=tk.X, side=tk.TOP, pady=(3, 0))
+
+        screenshot_button = tk.Button(copy_frame, text="Copy screenshot")
         screenshot_button.original_text = screenshot_button.cget("text")
         screenshot_button.config(command=lambda: copy_screenshot(screenshot_button))
-        screenshot_button.pack(fill=tk.X, side=tk.TOP, pady=(3, 0))
+        screenshot_button.pack(fill=tk.X, side=tk.RIGHT, expand=True, padx=(3, 0))
+
+        link_button = tk.Button(copy_frame, text="Copy link")
+        link_button.original_text = link_button.cget("text")
+        link_button.config(command=lambda: copy_link(link_button))
+        link_button.pack(fill=tk.X, side=tk.LEFT, expand=True)
