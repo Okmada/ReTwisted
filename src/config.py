@@ -13,30 +13,30 @@ class ConfigManager(metaclass=Singleton):
         except (FileNotFoundError, json.JSONDecodeError):
             raw = {}
 
-        self.__config = ConfigGroup("", [
-            ConfigGroup("roblox", [
-                ConfigGroup(roblox_type, [
-                    ConfigValue("enabled", bool, False),
-                    ConfigValue("macro", str, ""),
-                    ConfigValue("server", str, ""),
-                ])
+        self.__config = ConfigGroup({
+            "roblox": ConfigGroup({
+                roblox_type: ConfigGroup({
+                    "enabled": ConfigValue(bool, False),
+                    "macro": ConfigValue(str, ""),
+                    "server": ConfigValue(str, ""),
+                })
                 for roblox_type in ("WINDOWSCLIENT", "ApplicationFrameWindow")
-            ]),
-            ConfigGroup("webhook", [
-                ConfigValue("url", str, ""),
-                ConfigValue("share link", bool, True),
-                ConfigValue("role id", str, ""),
-                ConfigValue("user id", str, ""),
-            ]),
-            ConfigValue("timeout", int, 75),
-            ConfigValue("resume timer", int, 15),
-            ConfigValue("save data", bool, True),
-            ConfigValue("roblox player launcher override", str, ""),
-            ConfigGroup("conditions", [
-                ConfigValue("TwistedMacro_latest", list, []),
-                ConfigValue("TwistedMacro_1_19_1", list, []),
-            ]),
-        ])
+            }),
+            "webhook": ConfigGroup({
+                "url": ConfigValue(str, ""),
+                "share link": ConfigValue(bool, True),
+                "role id": ConfigValue(str, ""),
+                "user id": ConfigValue(str, ""),
+            }),
+            "timeout": ConfigValue(int, 75),
+            "resume timer": ConfigValue(int, 15),
+            "save data": ConfigValue(bool, True),
+            "roblox player launcher override": ConfigValue(str, ""),
+            "conditions": ConfigGroup({
+                "TwistedMacro_latest": ConfigValue(list, []),
+                "TwistedMacro_1_19_1": ConfigValue(list, []),
+            }),
+        })
 
         self.__config.set(raw)
 
@@ -59,9 +59,6 @@ class ConfigManager(metaclass=Singleton):
         self._write()
 
 class ConfigTemplate:
-    def __init__(self):
-        self.name = "TEMPLATE"
-
     def get(self):
         raise NotImplementedError("Subclasses should implement this method")
 
@@ -72,21 +69,14 @@ class ConfigTemplate:
         raise NotImplementedError("Subclasses should implement this method")
 
 class ConfigGroup(ConfigTemplate):
-    def __init__(self, name: str, subconfigs: list[ConfigTemplate]):
+    def __init__(self, subconfigs: dict[str, ConfigTemplate]):
         """
         Initialize a configuration group.
 
         Args:
-            name (str): The name of the configuration group.
-            subconfigs (list[ConfigTemplate]): A list of subconfigurations.
-
-        Raises:
-            AssertionError: If there are duplicate configuration names in the group.
+            subconfigs (dict[str, ConfigTemplate]): A dict of names and subconfigurations.
         """
-        self.name = name.lower()
-        self.subconfigs = {config.name: config for config in subconfigs}
-
-        assert len(subconfigs) == len(self.subconfigs), "Duplicate configs in group"
+        self.subconfigs = {name.lower(): config for name, config in subconfigs.items()}
 
     def get(self) -> dict:
         """
@@ -138,12 +128,11 @@ class ConfigGroup(ConfigTemplate):
 
 
 class ConfigValue(ConfigTemplate):
-    def __init__(self, name: str, dtype: Type, dvalue: Any):
+    def __init__(self, dtype: Type, dvalue: Any):
         """
         Initialize a configuration value.
 
         Args:
-            name (str): The name of the configuration value.
             dtype (Type): The expected data type of the value.
             dvalue (Any): The default value of the configuration.
 
@@ -152,7 +141,6 @@ class ConfigValue(ConfigTemplate):
         """
         assert isinstance(dvalue, dtype), "Default value type does not match data type"
 
-        self.name = name.lower()
         self.dtype = dtype
         self.dvalue = dvalue
         self.value = dvalue
