@@ -16,7 +16,9 @@ class Colors:
     GRAY_BUTTON = (79, 67, 64)
 
     GRAY_0 = (27, 23, 22)
-    GRAY_1 = (45, 38, 37)
+    GRAY_1 = (31, 26, 26)
+    GRAY_2 = (36, 31, 29)
+    GRAY_3 = (45, 38, 37)
 
     DAYS = {
         "HIGH": ((255, 127, 255), (200, 102, 198), (146, 79, 142)),
@@ -129,18 +131,21 @@ class TwistedMacro_latest(Macro):
         data_format_iterator = iter(self.Data.FORMAT.items())
 
         # GET CONTOURS OF WINDOWS
-        gray_mask = scv.mask_color(img, Colors.GRAY_1)
+        gray_mask = scv.mask_color(img, Colors.GRAY_3)
 
         data_contours = scv.find_contours(gray_mask)
         data_contour = max(data_contours, key=cv2.contourArea)
 
-        data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [data_contour], -1, 255, -1)
+        data_cutout = scv.extract_contour(img, data_contour)
 
-        sub_data_masks = np.bitwise_and(data_mask, np.bitwise_not(gray_mask)).astype(np.uint8) * 255
+        sub_data_masks = scv.mask_color(data_cutout, Colors.GRAY_0) \
+            | scv.mask_color(data_cutout, Colors.GRAY_1) \
+            | scv.mask_color(data_cutout, Colors.GRAY_2)
         sub_data_contours = scv.find_contours(sub_data_masks)
+        sub_data_contours = list(filter(lambda e: (scv.get_contour_center(e)[0] < (data_cutout.shape[1] * 2 / 3)) or (scv.get_contour_center(e)[1] < (data_cutout.shape[0] / 4)) ,sub_data_contours))
         sub_data_contours.sort(key=cv2.contourArea, reverse=True)
 
-        sub_data_contours, composites_contour, days_contours = sub_data_contours[:3], sub_data_contours[3], sub_data_contours[4:7]
+        sub_data_contours, composites_contour, days_contours = sub_data_contours[:2], sub_data_contours[2], sub_data_contours[3:]
 
         sub_data_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
         days_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
@@ -160,33 +165,24 @@ class TwistedMacro_latest(Macro):
             0.7, # 700-500mb RH
         ])
 
-        for contour in sub_data_contours[:2]:
-            contour_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [contour], -1, 255, -1)
-            color_mask = cv2.bitwise_and(scv.mask_color(img, Colors.GRAY_0), contour_mask)
+        for contour in sub_data_contours:
+            contour_cutout = scv.extract_contour(data_cutout, contour)
+            contour_cutout[np.where(contour_cutout == Colors.GRAY_0)] = 0
 
-            color_contours = scv.find_contours(color_mask)
-            color_contour = max(color_contours, key=cv2.contourArea)
-            filled_color_mask = cv2.drawContours(np.zeros(color_mask.shape[:2], np.uint8), [color_contour], -1, 255, -1)
-
-            text_mask = cv2.bitwise_and(filled_color_mask, cv2.bitwise_not(color_mask))
-
-            rows_mask = np.zeros(text_mask.shape[:2], np.uint8)
-            rows_mask[np.where(text_mask.max(axis=1)>0)[0]] = 255
-            rows_mask = cv2.bitwise_and(filled_color_mask, rows_mask)
+            rows_mask = np.zeros(contour_cutout.shape[:2], np.uint8)
+            rows_mask[np.where(contour_cutout.max(axis=1)>0)[0]] = 255
 
             rows_contours = scv.find_contours(rows_mask)
             rows_contours.sort(key=lambda e: scv.get_contour_center(e)[1])
 
             for row_contour in rows_contours:
-                cont_img = scv.extract_contour(img, row_contour)
-                cont_img[np.where(scv.mask_color(cont_img, Colors.GRAY_0))] = [0]
+                cont_img = scv.extract_contour(contour_cutout, row_contour)
 
                 color_text_mins = np.min(cont_img, axis=2)
 
                 cont_img = cv2.cvtColor(cont_img, cv2.COLOR_BGR2GRAY)
 
                 color_text = cont_img - color_text_mins
-
                 color_text = scv.spread_hist(color_text)
                 color_text[np.where(color_text <= 8)] = 0
 
@@ -203,7 +199,7 @@ class TwistedMacro_latest(Macro):
                 data_output[data_name] = scv.read_number(ODR(), color_text, data_type)
 
         # COMPOSITES
-        composites = scv.extract_contour(img, composites_contour)
+        composites = scv.extract_contour(data_cutout, composites_contour)
         composites[np.where(scv.mask_color(composites, Colors.GRAY_0))] = [0]
 
         composites = cv2.cvtColor(composites, cv2.COLOR_BGR2GRAY)
@@ -215,22 +211,9 @@ class TwistedMacro_latest(Macro):
             composite = scv.upscale(composite, 8)
             composite[np.where(composite <= 140)] = 0
 
-            characters_contours = scv.find_contours(composite)
-            characters_contours.sort(key=lambda e: scv.get_contour_center(e)[0], reverse=True)
-
             data_name, data_type = next(data_format_iterator)
 
-            number = ""
-            for character_contour in characters_contours:
-                character_img = scv.extract_contour(composite, character_contour)
-
-                if character_img.shape[0] / composite.shape[0] < 0.5:
-                    break
-
-                result = ODR().detect(character_img)
-                number += str(result)
-
-            data_output[data_name] = number[::-1]
+            data_output[data_name] = scv.read_number(ODR(), composite[:, composite.shape[1]//2:], int)
 
 
         # ANGLE STORM MOTION
@@ -266,7 +249,7 @@ class TwistedMacro_latest(Macro):
 
         # DAYS
         for i, cont in enumerate(days_contours):
-            cont_img = scv.extract_contour(img, cont)
+            cont_img = scv.extract_contour(data_cutout, cont)
 
             data_name, data_type = next(data_format_iterator)
 
@@ -279,7 +262,7 @@ class TwistedMacro_latest(Macro):
                 data_output[data_name] = None
 
         code_row = img[:60]
-        code_row_mask = scv.mask_color(code_row, Colors.GRAY_1)
+        code_row_mask = scv.mask_color(code_row, Colors.GRAY_3)
 
         code_contour = scv.find_contours(code_row_mask)
         code_contour = min(code_contour, key=lambda e: scv.get_contour_center(e)[0])
@@ -287,7 +270,7 @@ class TwistedMacro_latest(Macro):
         code_mask = cv2.drawContours(np.zeros(code_row.shape[:2], np.uint8), [code_contour], -1, 255, -1)
         code_trans = scv.crop_image(scv.mask_transparent(code_row, code_mask))
 
-        top_mask = np.bitwise_and(np.bitwise_not(data_mask), scv.mask_color(img, Colors.GRAY_0))
+        top_mask = scv.mask_color(cv2.drawContours(img.copy(), [data_contour], -1, (0, 0, 0), -1), Colors.GRAY_0)
         top_contour = max(scv.find_contours(top_mask), key=cv2.contourArea)
         full_data_contour = cv2.convexHull(np.vstack((top_contour, data_contour)))
         full_data_mask = cv2.drawContours(np.zeros(img.shape[:2], np.uint8), [full_data_contour], -1, 255, -1)

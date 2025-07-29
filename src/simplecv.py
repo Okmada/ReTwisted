@@ -10,8 +10,12 @@ def find_contours(image: np.ndarray) -> List[Tuple[Tuple[int, int]]]:
 
 def get_contour_center(contour: np.ndarray) -> Tuple[int, int]:
     M = cv2.moments(contour)
-    center_X = int(M["m10"] / M["m00"]) if M["m00"] != 0 else 0
-    center_Y = int(M["m01"] / M["m00"]) if M["m00"] != 0 else 0
+    if M["m00"] != 0:
+        center_X = int(M["m10"] / M["m00"])
+        center_Y = int(M["m01"] / M["m00"])
+    else:
+        cnt_points = contour.reshape(-1, 2)
+        center_X, center_Y = np.mean(cnt_points, axis=0).astype(int)
     return (center_X, center_Y)
 
 def extract_contour(image: np.ndarray, contour: np.ndarray) -> np.ndarray:
