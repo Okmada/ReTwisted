@@ -87,7 +87,7 @@ class MacroHandler(threading.Thread):
 
                         data, webhook_images = return_val
 
-                        if self._last_data == data:
+                        if ConfigManager().get(["restart on duplicate data"]) and self._last_data == data:
                             raise Exception("Same data as previous roll, restarting roblox")
                         self._last_data = data
 

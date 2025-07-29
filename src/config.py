@@ -31,6 +31,7 @@ class ConfigManager(metaclass=Singleton):
             "timeout": ConfigValue(int, 75),
             "resume timer": ConfigValue(int, 15),
             "save data": ConfigValue(bool, True),
+            "restart on duplicate data": ConfigValue(bool, True),
             "roblox player launcher override": ConfigValue(str, ""),
             "conditions": ConfigGroup({
                 "TwistedMacro_latest": ConfigValue(list, []),
