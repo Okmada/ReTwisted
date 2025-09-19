@@ -36,6 +36,7 @@ class ConfigManager(metaclass=Singleton):
             "conditions": ConfigGroup({
                 "TwistedMacro_latest": ConfigValue(list, []),
                 "TwistedMacro_1_19_1": ConfigValue(list, []),
+                "HelicityMacro": ConfigValue(list, [])
             }),
         })
 
