@@ -58,7 +58,7 @@ gui_main.pause_events.append(controller.pause)
 gui_main.unpause_events.append(controller.unpause)
 
 # CREATE ROBLOX GAMES
-for roblox_type in RobloxTypes:
+for roblox_type in (RobloxTypes.WINDOWSCLIENT, ):
     roblox_game = Roblox(roblox_type)
 
     macro = MacroHandler(roblox_game, webhook)
