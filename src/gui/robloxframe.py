@@ -1,7 +1,6 @@
 import ctypes
 import ctypes.wintypes
 import datetime
-import re
 import threading
 import tkinter as tk
 
@@ -125,39 +124,6 @@ class RobloxFrame:
         macro_var.trace_add("write", write_verify_macro)
         write_verify_macro()
 
-
-        server_frame = tk.Frame(info_frame_bottom)
-        server_frame.pack(fill=tk.X, side=tk.TOP)
-
-        server = ConfigManager().get(config_path + ["server"])
-        server_url_var = tk.StringVar(value=f"privateServerLinkCode={server}" if server else "")
-
-        tk.Label(server_frame, text="Server url:") \
-            .pack(fill=tk.Y, side=tk.LEFT, anchor=tk.N, padx=(0, 5))
-        server_url_entry = tk.Entry(server_frame, textvariable=server_url_var, highlightthickness=2)
-        server_url_entry.pack(fill=tk.BOTH, side=tk.RIGHT, anchor=tk.N, expand=True)
-
-        def write_verify_url(*e):
-            linkCode = re.search(".*privateServerLinkCode=([0-9]{32}).*", server_url_var.get())
-            code = re.search(".*code=([a-z0-9]{32}).*", server_url_var.get())
-
-            if code:
-                popup = tk.Toplevel(master)
-                popup.resizable(False, False)
-                popup.title("Wrong link detected!")
-                tk.Label(popup, justify=tk.LEFT, text="An incorrect link has been detected. Follow these steps to obtain the correct link:\n\n1) Open the current link in a browser where you are logged into Roblox.\n2) Wait a few seconds for Roblox to redirect and launch.\n3) Copy the link from the address bar and paste it in.").pack(padx=10, pady=10)
-                server_url_var.set("")
-                popup.grab_set()
-                popup.focus()
-
-            color = "#54de01" if linkCode else "red"
-            server_url_entry.configure(highlightbackground=color, highlightcolor=color)
-
-            server = str(linkCode.group(1)) if linkCode else ""
-            ConfigManager().set(config_path + ["server"], server)
-
-        server_url_var.trace_add("write", write_verify_url)
-        write_verify_url()
 
         def copy_screenshot(button):
             if not macro.roblox.hwnd:

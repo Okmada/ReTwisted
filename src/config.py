@@ -18,9 +18,18 @@ class ConfigManager(metaclass=Singleton):
                 roblox_type: ConfigGroup({
                     "enabled": ConfigValue(bool, False),
                     "macro": ConfigValue(str, ""),
-                    "server": ConfigValue(str, ""),
                 })
                 for roblox_type in ("WINDOWSCLIENT", "ApplicationFrameWindow")
+            }),
+            "macros": ConfigGroup({
+                macro: ConfigGroup({
+                    "server": ConfigGroup({
+                        "microsoft roblox": ConfigValue(str, ""),
+                        "roblox player": ConfigValue(str, ""),
+                    }),
+                    "conditions": ConfigValue(list, []),
+                })
+                for macro in ["TwistedMacro_latest", "TwistedMacro_1_19_1"]
             }),
             "webhook": ConfigGroup({
                 "url": ConfigValue(str, ""),
@@ -33,11 +42,6 @@ class ConfigManager(metaclass=Singleton):
             "save data": ConfigValue(bool, True),
             "restart on duplicate data": ConfigValue(bool, True),
             "roblox player launcher override": ConfigValue(str, ""),
-            "conditions": ConfigGroup({
-                "TwistedMacro_latest": ConfigValue(list, []),
-                "TwistedMacro_1_19_1": ConfigValue(list, []),
-                "HelicityMacro": ConfigValue(list, [])
-            }),
         })
 
         self.__config.set(raw)
@@ -124,7 +128,7 @@ class ConfigGroup(ConfigTemplate):
         name = name.lower()
 
         if name not in self.subconfigs:
-            raise KeyError(f"Configuration '{name}' not found in group '{self.name}'")
+            raise KeyError(f"Configuration '{name}' not found in group '{self}'")
 
         return self.subconfigs[name]
 

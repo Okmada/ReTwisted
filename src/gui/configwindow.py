@@ -1,5 +1,6 @@
+import re
 import tkinter as tk
-from typing import List
+from typing import Dict, List
 
 from config import ConfigManager
 from constants import FONT, NAME
@@ -10,42 +11,51 @@ from macro.macros import DefaultMacro, Macros
 class ConfigWindow:
     class ConfigTemplate:
         def __init__(self):
-            self.name = "TEMPLATE"
+            self.frame = None
 
         def _create_gui(self, master) -> None:
+            self.frame = tk.Frame(master)
+            self.frame.pack(anchor=tk.W, fill=tk.X)
+
+        def import_config(self, config) -> None:
             raise NotImplementedError
 
-        def import_config(self, path=[]) -> None:
-            raise NotImplementedError
-
-        def export_config(self, path=[]) -> None:
+        def export_config(self) -> object:
             raise NotImplementedError
 
     class Group(ConfigTemplate):
-        def __init__(self, name: str, childs: List[object]):
-            self.name = name.lower()
+        def __init__(self, childs: Dict[str, object], offset=True):
+            super().__init__()
+            
             self.childs = childs
+            self.offset = offset
 
         def _create_gui(self, master):
-            tk.Label(master, text=self.name.capitalize()).pack(anchor=tk.W)
+            # SPECIAL FRAME
 
-            submaster = tk.Frame(master)
-            submaster.pack(anchor=tk.W, padx=(25, 0))
+            self.frame = tk.Frame(master)
+            self.frame.pack(anchor=tk.W, padx=(25 if self.offset else 0, 0), fill=tk.X)
 
-            for child in self.childs:
-                child._create_gui(submaster)
+            for name, child in self.childs.items():
+                tk.Label(self.frame, text=name.capitalize()) \
+                    .pack(anchor=tk.W)
+                
+                child._create_gui(self.frame)
 
-        def import_config(self, path=[]):
-            for child in self.childs:
-                child.import_config(path + [self.name])
+        def import_config(self, config):
+            for name, child in self.childs.items():
+                if name in config:
+                    child.import_config(config[name])
 
-        def export_config(self, path=[]):
-            for child in self.childs:
-                child.export_config(path + [self.name])
+        def export_config(self):
+            return { name: child.export_config() for name, child in self.childs.items() }
 
     class EntryConfig(ConfigTemplate):
-        def __init__(self, name, dtype, description):
-            self.name = name.lower()
+        def __init__(self, dtype, description):
+            super().__init__()
+
+            self.entry = None
+            
             self.dtype = dtype
             self.description = description
 
@@ -66,62 +76,140 @@ class ConfigWindow:
             self.inpt.set(string)
 
         def _create_gui(self, master):
-            frame = tk.Frame(master)
-            frame.pack(anchor=tk.W, pady=(0, 15))
+            super()._create_gui(master)
 
-            tk.Label(frame, text=self.name.capitalize()).pack(anchor=tk.W)
-
-            tk.Label(frame, state=tk.DISABLED, text=self.description,
+            tk.Label(self.frame, state=tk.DISABLED, text=self.description,
                      font=(FONT, 10), justify=tk.LEFT) \
             .pack(anchor=tk.W)
 
-            tk.Entry(frame, textvariable=self.inpt, width=50) \
-                .pack(side=tk.LEFT, padx=(3, 0))
+            self.entry = tk.Entry(self.frame, textvariable=self.inpt, width=50)
+            self.entry.pack(side=tk.LEFT, padx=(3, 0))
 
-        def import_config(self, path=[]):
-            config_value = ConfigManager().get(path + [self.name])
+        def import_config(self, config):
+            self.inpt.set(config)
 
-            self.inpt.set(config_value)
-
-        def export_config(self, path=[]):
+        def export_config(self):
             try:
-                config_value = self.dtype(self.inpt.get())
-            except:
-                config_value = None
-
-            ConfigManager().set(path + [self.name], config_value)
+                return self.dtype(self.inpt.get())
+            except Exception:
+                return None
 
     class BoolConfig(ConfigTemplate):
         options = ["Disabled", "Enabled"] # ["False", "True"]
 
-        def __init__(self, name, description):
-            self.name = name.lower()
+        def __init__(self, description):
+            super().__init__()
+
             self.description = description
 
             self.inpt = tk.StringVar()
 
         def _create_gui(self, master):
-            frame = tk.Frame(master)
-            frame.pack(anchor=tk.W, pady=(0, 15))
+            super()._create_gui(master)
 
-            tk.Label(frame, text=self.name.capitalize()).pack(anchor=tk.W)
-
-            tk.Label(frame, state=tk.DISABLED, text=self.description,
+            tk.Label(self.frame, state=tk.DISABLED, text=self.description,
                      font=(FONT, 10), justify=tk.LEFT) \
                 .pack(anchor=tk.W)
 
-            tk.OptionMenu(frame, self.inpt, *self.options) \
+            tk.OptionMenu(self.frame, self.inpt, *self.options) \
                 .pack(side=tk.LEFT, padx=(3, 0))
 
-        def import_config(self, path=[]):
-            config_value = int(ConfigManager().get(path + [self.name]))
+        def import_config(self, config):
+            self.inpt.set(self.options[int(config)])
 
-            self.inpt.set(self.options[config_value])
+        def export_config(self):
+            return bool(self.options.index(self.inpt.get()))
+        
+    class SelectorGroup(ConfigTemplate):
+        def __init__(self, childs: Dict[str, object], default=None):
+            super().__init__()
 
-        def export_config(self, path=[]):
-            config_value = self.options.index(self.inpt.get())
+            if default is not None:
+                assert default in childs
 
-            ConfigManager().set(path + [self.name], bool(config_value))
+            self.childs = childs
+
+            self.inpt = tk.StringVar(value=default)
+            self.inpt.trace_add("write", self.change)
+
+            self.current = default
+            self.config = {}
+
+        def _create_gui(self, master):
+            super()._create_gui(master)
+            
+            tk.OptionMenu(self.frame, self.inpt, *self.childs.keys()) \
+                .pack(fill=tk.X, side=tk.TOP)
+            
+            self.childs_gui = {}
+            for key, child in self.childs.items():
+                child_frame = tk.Frame(self.frame)
+                child._create_gui(child_frame)
+                self.childs_gui[key] = child_frame
+
+            self.change()
+
+        def change(self, *_):
+            if self.current is not None:
+                self.childs_gui[self.current].pack_forget()
+
+            self.current = self.inpt.get()
+
+            if self.current in self.childs_gui:
+                self.childs_gui[self.current].pack(fill=tk.X, side=tk.TOP)
+            else:
+                self.current = None
+
+
+        def import_config(self, config):
+            for name, child in self.childs.items():
+                if name.lower() in config:
+                    child.import_config(config[name.lower()])
+
+        def export_config(self):
+            return { name.lower(): child.export_config() for name, child in self.childs.items() }
+        
+    class ServerConfig(EntryConfig):
+        GREEN = "#54de01"
+        RED = "red"
+
+        def __init__(self):
+            super().__init__(str, "Enter url of server you wish to roll")
+
+        def _create_gui(self, master):
+            super()._create_gui(master)
+
+            self.entry.configure(highlightthickness=2, highlightbackground=self.RED, highlightcolor=self.RED)
+
+        def _parse_url(self) -> tuple[str]:
+            linkCode = re.search(".*privateServerLinkCode=([0-9]{32}).*", self.inpt.get())
+            code = re.search(".*code=([a-z0-9]{32}).*", self.inpt.get())
+            return (linkCode, code)
+
+        def _validate(self, *_):
+            linkCode, code = self._parse_url()
+
+            if code and self.frame is not None:
+                popup = tk.Toplevel(self.frame)
+                popup.resizable(False, False)
+                popup.title("Wrong link detected!")
+                tk.Label(popup, justify=tk.LEFT, text="An incorrect link has been detected. Follow these steps to obtain the correct link:\n\n1) Open the current link in a browser where you are logged into Roblox.\n2) Wait a few seconds for Roblox to redirect and launch.\n3) Copy the link from the address bar and paste it in.").pack(padx=10, pady=10)
+                self.inpt.set("")
+                popup.grab_set()
+                popup.focus()
+
+            if self.entry is not None:
+                color = self.GREEN if linkCode else self.RED
+                self.entry.configure(highlightbackground=color, highlightcolor=color)
+
+        def import_config(self, config):
+            super().import_config(f"privateServerLinkCode={config}" if config else "")
+
+            self._validate()
+
+        def export_config(self):
+            linkCode, _ = self._parse_url()
+            return str(linkCode.group(1)) if linkCode else ""
 
     class ConditionConfig(ConfigTemplate):
         class ConditionGroup:
@@ -258,89 +346,67 @@ class ConfigWindow:
 
         DESCRIPTION = "Bot stops if at least one group has all the conditions met within the group."
 
-        def __init__(self, name: str):
-            self.name = name.lower()
+        def __init__(self, macro: str):
+            super().__init__()
 
-            self.master = None
-
-            self.macro = DefaultMacro
-
-            self.config = {}
+            self.macro = macro
 
             self._sublist = []
 
         def _create_gui(self, master):
-            self.master = master
+            super()._create_gui(master)
 
-            description = tk.Label(self.master, state=tk.DISABLED, text=self.DESCRIPTION,
+            description = tk.Label(self.frame, state=tk.DISABLED, text=self.DESCRIPTION,
                                    font=(FONT, 10), justify=tk.CENTER)
             description.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
 
             description.config(wraplength=description.winfo_width())
             description.bind('<Configure>', lambda *_: description.config(wraplength=description.winfo_width()))
 
-            tk.Button(self.master, text="Add group", command=lambda:
-                      self.ConditionGroup(self.master, self._sublist, self.macro)) \
+            tk.Button(self.frame, text="Add group", command=lambda:
+                      self.ConditionGroup(self.frame, self._sublist, self.macro)) \
                 .pack(fill=tk.X, side=tk.BOTTOM)
-            
-            self.macro_selector = tk.StringVar(value=self.macro)
-            self.macro_selector.trace_add("write", self.change_macro)
-
-            tk.OptionMenu(self.master, self.macro_selector, *Macros.keys()) \
-                .pack(fill=tk.X, side=tk.TOP)
             
         def clear(self):
             while self._sublist:
                 self._sublist.pop().frame.destroy()
 
-        def save(self):
-            self.config[self.macro] = [group.export_config() for group in self._sublist]
-
-        def load(self):
+        def import_config(self, config):
             self.clear()
-            if self.macro in self.config:
-                for groups in self.config[self.macro]:
-                    self.ConditionGroup(self.master, self._sublist, self.macro) \
-                        .import_config(groups)
+            for group in config:
+                    self.ConditionGroup(self.frame, self._sublist, self.macro) \
+                        .import_config(group)
 
-        def change_macro(self, *_):
-            self.save()
-            self.macro = self.macro_selector.get()
-            self.load()
 
-        def import_config(self, path=[]):
-            for macro in Macros.keys():
-                self.config[macro] = ConfigManager().get(path + [self.name] + [macro])
-
-            self.load()
-
-        def export_config(self, path=[]):
-            self.save()
-
-            for macro in Macros.keys():
-                ConfigManager().set(path + [self.name] + [macro], self.config[macro])
+        def export_config(self):
+            return [group.export_config() for group in self._sublist]
 
     def __init__(self, master) -> None:
         self.root= tk.Toplevel(master)
         self.root.withdraw()
 
-        self.left_config = [
-            self.Group("webhook", [
-                self.EntryConfig("url", str, "Webhook url where message will be sent on successful find.\nLeave empty for no message."),
-                self.BoolConfig("share link", "Adds a hyperlink to the server that has been rolled.\nWorks only for VIP servers."),
-                self.EntryConfig("role id", str, "Role which will be pinged in message."),
-                self.EntryConfig("user id", str, "User which will be pinged in message.")
-            ]),
-            self.EntryConfig("timeout", int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."),
-            self.EntryConfig("resume timer", int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
-            self.BoolConfig("save data", "Exports data from every roll to csv file"),
-            self.BoolConfig("restart on duplicate data", "Restarts Roblox if the same data is detected as in the previous roll.\nPrevents getting stuck when Roblox fails to reopen."),
-            self.EntryConfig("roblox player launcher override", str, "Define exact path of Roblox Player or other 3rd-party launcher (.exe / .lnk).\nWARNING: provided file will be executed!"),
-        ]
+        self.left_config = self.Group({
+            "webhook": self.Group({
+                "url": self.EntryConfig(str, "Webhook url where message will be sent on successful find.\nLeave empty for no message."),
+                "share link": self.BoolConfig("Adds a hyperlink to the server that has been rolled.\nWorks only for VIP servers."),
+                "role id": self.EntryConfig(str, "Role which will be pinged in message."),
+                "user id": self.EntryConfig(str, "User which will be pinged in message.")
+            }),
+            "timeout": self.EntryConfig(int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."),
+            "resume timer": self.EntryConfig(int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
+            "save data": self.BoolConfig("Exports data from every roll to csv file"),
+            "roblox player launcher override": self.EntryConfig(str, "Define exact path of Roblox Player or other 3rd-party launcher (.exe / .lnk).\nWARNING: provided file will be executed!"),
+        }, offset=False)
 
-        self.right_config = [
-            self.ConditionConfig("conditions")
-        ]
+        self.right_config = self.SelectorGroup({
+            macro: self.Group({
+                "server": self.Group({
+                    # "microsoft roblox": self.ServerConfig(),
+                    "roblox player": self.ServerConfig(),
+                }),
+                "conditions": self.ConditionConfig(macro),
+            }, offset=False)
+        for macro in Macros}, default=DefaultMacro)
 
         self._setup()
 
@@ -365,20 +431,18 @@ class ConfigWindow:
         left_side.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         left_side.pack_propagate(False)
 
-        for config_widget in self.left_config:
-            config_widget._create_gui(left_side.interior)
+        self.left_config._create_gui(left_side.interior)
 
         # RIGHT SIDE
         right_side = ScrollFrame(self.root)
         right_side.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         right_side.pack_propagate(False)
 
-        for config_widget in self.right_config:
-            config_widget._create_gui(right_side.interior)
+        self.right_config._create_gui(right_side.interior)
 
     def open(self) -> None:
-        for setting in self.left_config + self.right_config:
-            setting.import_config()
+        self.left_config.import_config(ConfigManager().get([]))
+        self.right_config.import_config(ConfigManager().get(["macros"]))
 
         self.root.deiconify()
 
@@ -388,5 +452,5 @@ class ConfigWindow:
     def close_and_save(self) -> None:
         self.close()
 
-        for setting in self.left_config + self.right_config:
-            setting.export_config()
+        ConfigManager().set([], self.left_config.export_config())
+        ConfigManager().set(["macros"], self.right_config.export_config())

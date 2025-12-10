@@ -52,7 +52,7 @@ class MacroHandler(threading.Thread):
 
                 match (self._state):
                     case (States.START_ROBLOX):
-                        linkCode = ConfigManager().get(["roblox", self.roblox.name, "server"])
+                        linkCode = ConfigManager().get(["macros", self._macro.__class__.__name__,  "server", self.roblox.friendly_name])
                         self.roblox.join_place(self._macro.PLACE_ID, linkCode)
 
                         self._state = States.AWAIT_ROBLOX
@@ -142,7 +142,7 @@ class MacroHandler(threading.Thread):
         self._pause_callbacks.append(func)
 
     def check_conditions(self, data: Data) -> bool:
-        for group in ConfigManager().get(["conditions", self._macro.__class__.__name__]):
+        for group in ConfigManager().get(["macros", self._macro.__class__.__name__, "conditions"]):
             for condition in group:
                 what, comparison_type, expected_data = condition
 
