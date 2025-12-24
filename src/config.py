@@ -29,7 +29,7 @@ class ConfigManager(metaclass=Singleton):
                     }),
                     "conditions": ConfigValue(list, []),
                 })
-                for macro in ["TwistedMacro_latest", "TwistedMacro_1_19_1"]
+                for macro in ["TwistedMacro_latest", "TwistedMacro_1_19_1", "HelicityMacro"]
             }),
             "webhook": ConfigGroup({
                 "url": ConfigValue(str, ""),

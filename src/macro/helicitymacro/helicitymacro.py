@@ -12,6 +12,7 @@ from macro.twistedmacro.twistedmacro_1_19_1 import ODRTwisted_1_19_1
 
 class Colors:
     BLUE_LOGO = (212, 52, 81)
+    WHITE_LOGO = (255, 229, 182)
     GREEN_PLAY = (98, 182, 104)
 
 
@@ -45,7 +46,7 @@ class HelicityMacro(Macro):
         # WAIT FOR MENU AND CLICK PLAY
         H, W, *_ = img.shape
 
-        return bool(np.all(img[int(H * 0.175 + W * 0.25 * 0.2), int(W * 0.175)] == Colors.BLUE_LOGO).any())
+        return bool(True in [np.all(img[int(H * 0.175 + W * 0.25 * 0.2), int(W * 0.175)] == color).any() for color in (Colors.BLUE_LOGO, Colors.WHITE_LOGO)])
     
     def click_menu(self, img: np.ndarray) -> bool:
         H, W, *_ = img.shape
