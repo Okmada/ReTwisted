@@ -139,6 +139,9 @@ class Controller(threading.Thread, metaclass=Singleton):
             time.sleep(.1)
             Controller.focus_window(DESKTOP)
 
+            time.sleep(.1)
+            Controller._move_to(fx + 1, fy)
+        
         time.sleep(.1)
 
         Controller._move_to(fx, fy)
