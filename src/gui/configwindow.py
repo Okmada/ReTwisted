@@ -392,6 +392,10 @@ class ConfigWindow:
                 "role id": self.EntryConfig(str, "Role which will be pinged in message."),
                 "user id": self.EntryConfig(str, "User which will be pinged in message.")
             }),
+            "leave after roll": self.Group({
+                "enabled": self.BoolConfig("Automatically leaves the game after a successful roll."),
+                "time": self.EntryConfig(int, "Time to stay in the home screen (seconds).")
+            }),
             "timeout": self.EntryConfig(int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."),
             "resume timer": self.EntryConfig(int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
             "save data": self.BoolConfig("Exports data from every roll to csv file"),

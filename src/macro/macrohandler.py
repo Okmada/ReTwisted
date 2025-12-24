@@ -10,6 +10,8 @@ from discord import Webhook
 from macro.macros import Macros, DefaultMacro
 from roblox import Roblox
 from datalogger import DataLogger
+from controller import Controller
+
 
 class States(enum.Enum):
     START_ROBLOX = enum.auto()
@@ -105,6 +107,13 @@ class MacroHandler(threading.Thread):
 
                             for f in self._pause_callbacks: f()
 
+                        if ConfigManager().get(["leave after roll", "enabled"]):
+                            Controller().sync_press_key(self.roblox.hwnd, 0x01)
+                            Controller().sync_press_key(self.roblox.hwnd, 0x26)
+                            Controller().sync_press_key(self.roblox.hwnd, 0x1C)
+
+                            time.sleep(ConfigManager().get(["leave after roll", "time"]))
+                            
                         self.restart()
             except Exception as e:
                 logging.exception(e)

@@ -37,6 +37,10 @@ class ConfigManager(metaclass=Singleton):
                 "role id": ConfigValue(str, ""),
                 "user id": ConfigValue(str, ""),
             }),
+            "leave after roll": ConfigGroup({
+                "enabled": ConfigValue(bool, False),
+                "time": ConfigValue(int, 5),
+            }),
             "timeout": ConfigValue(int, 75),
             "resume timer": ConfigValue(int, 15),
             "save data": ConfigValue(bool, True),
