@@ -399,6 +399,7 @@ class ConfigWindow:
             "timeout": self.EntryConfig(int, "Maximum amount of time that the server can take to reroll.\nEntering 0 will disable this feature."),
             "resume timer": self.EntryConfig(int, "Time in minutes after which the bot will continue rerolling automatically.\nEntering 0 will disable this feature."),
             "save data": self.BoolConfig("Exports data from every roll to csv file"),
+            "restart on duplicate data": self.BoolConfig("Restarts Roblox if the same data is detected as in the previous roll.\nPrevents getting stuck when Roblox fails to reopen."),
             "roblox player launcher override": self.EntryConfig(str, "Define exact path of Roblox Player or other 3rd-party launcher (.exe / .lnk).\nWARNING: provided file will be executed!"),
         }, offset=False)
 
