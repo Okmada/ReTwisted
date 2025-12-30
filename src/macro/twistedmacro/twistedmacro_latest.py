@@ -138,14 +138,18 @@ class TwistedMacro_latest(Macro):
 
         data_cutout = scv.extract_contour(img, data_contour)
 
-        sub_data_masks = scv.mask_color(data_cutout, Colors.GRAY_0) \
-            | scv.mask_color(data_cutout, Colors.GRAY_1) \
-            | scv.mask_color(data_cutout, Colors.GRAY_2)
+        sub_data_masks = scv.mask_color(data_cutout, Colors.GRAY_0)
         sub_data_contours = scv.find_contours(sub_data_masks)
         sub_data_contours = list(filter(lambda e: (scv.get_contour_center(e)[0] < (data_cutout.shape[1] * 2 / 3)) or (scv.get_contour_center(e)[1] < (data_cutout.shape[0] / 4)) ,sub_data_contours))
         sub_data_contours.sort(key=cv2.contourArea, reverse=True)
 
-        sub_data_contours, composites_contour, days_contours = sub_data_contours[:2], sub_data_contours[2], sub_data_contours[3:]
+        sub_data_contours, composites_contour, days_contours = sub_data_contours[:2], sub_data_contours[2], [sub_data_contours[3]]
+
+        for color in (Colors.GRAY_1, Colors.GRAY_2):
+            day_mask = scv.mask_color(data_cutout, color)
+            day_contours = scv.find_contours(day_mask)
+            day_contours.sort(key=lambda e: cv2.contourArea(e))
+            days_contours.append(day_contours[-1])
 
         sub_data_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
         days_contours.sort(key=lambda e: scv.get_contour_center(e)[0])
@@ -173,6 +177,8 @@ class TwistedMacro_latest(Macro):
             rows_mask[np.where(contour_cutout.max(axis=1)>0)[0]] = 255
 
             rows_contours = scv.find_contours(rows_mask)
+            rows_contours.sort(key=lambda e: cv2.contourArea(e), reverse=True)
+            rows_contours = rows_contours[:5]
             rows_contours.sort(key=lambda e: scv.get_contour_center(e)[1])
 
             for row_contour in rows_contours:
